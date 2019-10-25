@@ -4,7 +4,6 @@ from time import sleep
 import os
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-from scipy.interpolate import spline
 
 alt=0
 barom=1
