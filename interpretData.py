@@ -5,25 +5,43 @@ import datetime as dt
 import os
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import tkinter
 
 alt=0
+barom=1
 #GPS
-GPS_LA=1
-GPS_LO=2
+GPS_LA=2
+GPS_LO=3
 #gyroscope
-Gx=3
-Gy=4
-Gz=5
+Gx=4
+Gy=5
+Gz=6
 #accelerometer
-Ax=6
-Ay=7
-Az=8
+Ax=7
+Ay=8
+Az=9
 #magnemometer
-Mx=9
-My=10
-Mz=11
+Mx=10
+My=11
+Mz=12
 #time
-t=12
+t=13
+'''
+
+alt=0
+barom=1
+Gx=2
+Gy=3
+Gz=4
+Ax=5
+Ay=6
+Az=7
+Mx=8
+My=9
+Mz=10
+t=11
+'''
+time=0.0
 
 #launch vars
 TOL_Launch=10
@@ -41,7 +59,7 @@ apogeeHeight=0
 #main deployed vars
 TOL_Main=4
 mainConfidence=0
-minCertaintyMain=2
+minCertaintyMain=50
 mainDeployed=False
 
 #landed vars
@@ -51,26 +69,30 @@ TOL_Landed=1
 #list of last 10 data readings
 recentData=[]
 
-
 currAlt=0
 currAy=0
+Ay_max=0.0
 
-#plt.style.use('fivethirtyeight')
+timeLaunched=0
+timeLanded=0
+
+serialPortWorks=True
+
 fig = plt.figure()
 ax1 = fig.add_subplot(1,1,1)
 ax2 = ax1.twinx()
 x_vals = []
 y_vals = []
 y2_vals = []
-
-ser=serial.Serial('/dev/cu.usbserial-1420',9600)
-#ser=serial.Serial('/dev/tty.usbserial-1410',9600)
-'''
-while True:
-    if (ser.in_waiting>0):
-        line = ser.readline().decode('utf-8')[:-1]
-        print(line.split())
-'''
+try:
+    ser=serial.Serial('/dev/cu.usbserial-1420',9600)
+except:
+    try:
+        ser=serial.Serial('/dev/cu.usbserial-1410',9600)
+    except:
+        serialPortWorks=False
+        fName=sys.argv[1]
+        f=open(fName,"r")
 
 def AddDataLine(dataLine):
     if len(recentData)>=10:
@@ -79,17 +101,20 @@ def AddDataLine(dataLine):
 
 def CheckLaunch():
     global hasLaunched
+    global timeLaunched
     if len(recentData)<2:
         return
     if ((recentData[-1][alt])-(recentData[-2][alt])) > TOL_Launch:
         hasLaunched=True
+        timeLaunched=recentData[-1][t]
 
 def CheckMBO():
     global hasLaunched
     global mbo
     if not hasLaunched:
         return
-    if recentData[-1][Ay]>0:
+    #if vertical acceleration is < 0
+    if recentData[-1][Ay]<0:
         mbo=True
 
 def CheckApogee():
@@ -105,53 +130,80 @@ def CheckApogee():
         apogeeReached=True
         apogeeHeight=recentData[-3][alt]
 
+
+
 def CheckMainDeployed():
-    global apogeeReached
     global mainDeployed
     global mainConfidence
     global minCertaintyMain
-    if not apogeeReached:
-        return
-    currVelocity=(recentData[-1][alt]-recentData[-2][alt])/(recentData[-1][t]-recentData[-2][t])
-    prevVelocity=(recentData[-2][alt]-recentData[-3][alt])/(recentData[-2][t]-recentData[-3][t])
-    if abs(currVelocity-prevVelocity)>TOL_Main:
+    currVelocity=(recentData[-1][alt]-recentData[-2][alt])/(recentData[-1][t]-recentData[-2][t])*1000
+    prevVelocity=(recentData[5][alt]-recentData[4][alt])/(recentData[5][t]-recentData[4][t])*1000
+    prevVelocity2=(recentData[1][alt]-recentData[0][alt])/(recentData[1][t]-recentData[0][t])*1000
+    currAcc=(currVelocity-prevVelocity)/(recentData[-1][t]-recentData[4][t])*1000
+    prevAcc=(prevVelocity-prevVelocity2)/(recentData[5][t]-recentData[0][t])*1000
+    print 'difference in acc: %f' % (abs(currAcc/1000-prevAcc/1000))
+    print 'currAcc: %f\nprevAcc: %f' % (currAcc/1000, prevAcc/1000)
+    
+    if currAcc>=0:
         mainConfidence+=1
-    if mainConfidence >= minCertaintyMain:
+    if mainConfidence>=minCertaintyMain:
         mainDeployed=True
+        #mainConfidence+=1
+    #if abs(currVelocity-prevVelocity)>TOL_Main:
+    #    mainConfidence+=1
+    #if mainConfidence >= minCertaintyMain:
+        #mainDeployed=True
+
 
 def CheckLanded():
-    global mainDepployed
     global hasLanded
+    global timeLanded
     if not apogeeReached:
         return
     if abs(recentData[9][alt]-recentData[0][alt])<TOL_Landed:
         hasLanded=True
+        timeLanded=recentData[0][t]
 
 
 def animate(i):
     global ser
     global currAlt
     global currAy
-    while (ser.in_waiting < 1):
-        pass
-    line = ser.readline().decode('utf-8')[:-1]
+    global Ay_max
+    global time
+    if serialPortWorks:
+        while (ser.in_waiting < 1):
+            pass
+        line = ser.readline().decode('utf-8')[:-1]
+    else:
+        line = f.readline()
     strData = line.split()
     if (len(strData) < 10):
         return
     print(line)
     data=[float(i) for i in strData]
+    data[Ay] *= -9.81
+    data.append(time)
+    time+=0.5
     AddDataLine(data)
+    if data[Ay]>Ay_max:
+        Ay_max=data[Ay]
+    print "current highest Ay: %f" % (Ay_max)
     if not hasLaunched:
         CheckLaunch()
-    if not mbo:
+    elif not mbo:
         CheckMBO()
-    if not apogeeReached:
+    elif not apogeeReached:
         CheckApogee()
-    if not mainDeployed:
+    elif not mainDeployed:
         CheckMainDeployed()
-    if not hasLanded:
+    if apogeeReached and not hasLanded:
         CheckLanded()
     print 'has launched: %s\nmbo: %s\napogee reached: %s\nmain deployed: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, mainDeployed, hasLanded)
+    if hasLanded:
+        print 'flight duration: %f' % ((timeLanded-timeLaunched))
+    if apogeeReached:
+        print 'height at apogee: %f' % (apogeeHeight)
     currAlt= 0.1 * data[alt] + 0.9 * currAlt
     currAy=0.1 + data[Ay] + 0.9 * currAy
     x_vals.append(data[t])
@@ -170,7 +222,7 @@ def animate(i):
    
 ani = FuncAnimation(plt.gcf(), animate, interval = 50)
 plt.show()
-
+f.close()
 
 
 
