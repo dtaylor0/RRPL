@@ -64,7 +64,9 @@ mainDeployed=False
 
 #landed vars
 hasLanded=False
-TOL_Landed=1
+TOL_Landed=0.5
+TOL_Height=100
+heightAtLaunch=0
 
 #list of last 10 data readings
 recentData=[]
@@ -106,11 +108,13 @@ def AddDataLine(dataLine):
 def CheckLaunch():
     global hasLaunched
     global timeLaunched
+    global heightAtLaunch
     if len(recentData)<2:
         return
     if ((recentData[-1][alt])-(recentData[-2][alt])) > TOL_Launch:
         hasLaunched=True
-        timeLaunched=recentData[-1][t]
+        timeLaunched=recentData[-2][t]
+        heightAtLaunch=recentData[-2][alt]
 
 def CheckMBO():
     global hasLaunched
@@ -162,7 +166,10 @@ def CheckMainDeployed():
 def CheckLanded():
     global hasLanded
     global timeLanded
+    global heightAtLaunch
     if not apogeeReached:
+        return
+    if recentData[-1][alt]-heightAtLaunch > TOL_Height:
         return
     if abs(recentData[9][alt]-recentData[0][alt])<TOL_Landed:
         hasLanded=True
