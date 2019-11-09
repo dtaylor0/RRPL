@@ -91,7 +91,11 @@ except:
         ser=serial.Serial('/dev/cu.usbserial-1410',9600)
     except:
         serialPortWorks=False
-        fName=sys.argv[1]
+        try:
+            fName=sys.argv[1]
+        except:
+            print 'Error: No working serial port and no file name in arguments.'
+            sys.exit()
         f=open(fName,"r")
 
 def AddDataLine(dataLine):
@@ -131,7 +135,7 @@ def CheckApogee():
         apogeeHeight=recentData[-3][alt]
 
 
-
+'''
 def CheckMainDeployed():
     global mainDeployed
     global mainConfidence
@@ -141,8 +145,8 @@ def CheckMainDeployed():
     prevVelocity2=(recentData[1][alt]-recentData[0][alt])/(recentData[1][t]-recentData[0][t])*1000
     currAcc=(currVelocity-prevVelocity)/(recentData[-1][t]-recentData[4][t])*1000
     prevAcc=(prevVelocity-prevVelocity2)/(recentData[5][t]-recentData[0][t])*1000
-    print 'difference in acc: %f' % (abs(currAcc/1000-prevAcc/1000))
-    print 'currAcc: %f\nprevAcc: %f' % (currAcc/1000, prevAcc/1000)
+    #print 'difference in acc: %f' % (abs(currAcc/1000-prevAcc/1000))
+    #print 'currAcc: %f\nprevAcc: %f' % (currAcc/1000, prevAcc/1000)
     
     if currAcc>=0:
         mainConfidence+=1
@@ -153,7 +157,7 @@ def CheckMainDeployed():
     #    mainConfidence+=1
     #if mainConfidence >= minCertaintyMain:
         #mainDeployed=True
-
+'''
 
 def CheckLanded():
     global hasLanded
@@ -188,25 +192,28 @@ def animate(i):
     AddDataLine(data)
     if data[Ay]>Ay_max:
         Ay_max=data[Ay]
-    print "current highest Ay: %f" % (Ay_max)
+    #print "current highest Ay: %f" % (Ay_max)
     if not hasLaunched:
         CheckLaunch()
     elif not mbo:
         CheckMBO()
     elif not apogeeReached:
         CheckApogee()
+        '''
     elif not mainDeployed:
         CheckMainDeployed()
+        '''
     if apogeeReached and not hasLanded:
         CheckLanded()
-    print 'has launched: %s\nmbo: %s\napogee reached: %s\nmain deployed: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, mainDeployed, hasLanded)
+    #print 'has launched: %s\nmbo: %s\napogee reached: %s\nmain deployed: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, mainDeployed, hasLanded)
+    print 'has launched: %s\nmbo: %s\napogee reached: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, hasLanded)
     if hasLanded:
         print 'flight duration: %f' % ((timeLanded-timeLaunched))
     if apogeeReached:
         print 'height at apogee: %f' % (apogeeHeight)
     currAlt= 0.1 * data[alt] + 0.9 * currAlt
     currAy=0.1 + data[Ay] + 0.9 * currAy
-    x_vals.append(data[t])
+    x_vals.append(data[t]/1000.0)
     y_vals.append(currAlt)
     y2_vals.append(currAy)
     ax1.cla()
