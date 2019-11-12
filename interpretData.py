@@ -8,8 +8,9 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-import tkinter as tk
+import Tkinter as tk
 from playsound import playsound
+
 
 alt=0
 barom=1
@@ -100,7 +101,7 @@ except:
         try:
             fName=sys.argv[1]
         except:
-            print 'Error: No working serial port and no file name in arguments.'
+            print ('Error: No working serial port and no file name in arguments.')
             sys.exit()
         f=open(fName,"r")
 
@@ -184,6 +185,7 @@ def CheckLanded():
 
 
 def animate(i):
+    sleep(0.1)
     global ser
     global currAlt
     global currAy
@@ -220,11 +222,11 @@ def animate(i):
         CheckLanded()
     os.system('clear')
     #print 'has launched: %s\nmbo: %s\napogee reached: %s\nmain deployed: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, mainDeployed, hasLanded)
-    print 'has launched: %s\nmbo: %s\napogee reached: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, hasLanded)
+    print ('has launched: %s\nmbo: %s\napogee reached: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, hasLanded))
     if hasLanded:
-        print 'flight duration: %f' % ((timeLanded-timeLaunched))
+        print ('flight duration: %f' % ((timeLanded-timeLaunched)))
     if apogeeReached:
-        print 'height at apogee: %f' % (apogeeHeight)
+        print ('height at apogee: %f' % (apogeeHeight))
     currAlt= 0.1 * data[alt] + 0.9 * currAlt
     currAy=0.1 + data[Ay] + 0.9 * currAy
     x_vals.append(data[t]/1000.0)
@@ -277,29 +279,32 @@ class GUI(tk.Tk):
 
 
 
-thisString=tk.StringVar()
 stupidFont=("Comic Sans MS",35,"bold")
 boringFont=("Helvetica",20)
+bgColor="#b9c5ca"
 
 class GraphPage(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+
+
+        self.configure(bg=bgColor)
+        
+
         label = tk.Label(self, text="Beeg Rocket Go Up",font=stupidFont)
+        label["bg"]=bgColor
         label.pack(pady=10,padx=10)
         canvas = FigureCanvasTkAgg(fig, self)
         canvas.show()
-        canvas.get_tk_widget().pack(side=tk.RIGHT)
+        canvas.get_tk_widget().pack(side=tk.BOTTOM,fill=tk.BOTH,expand=True)
 
         toolbar = NavigationToolbar2TkAgg(canvas, self)
         toolbar.update()
         canvas._tkcanvas.pack(side=tk.RIGHT, expand=True)
-'''
-        background_image=tk.PhotoImage(file="image.png")
-        background_label = tk.Label(parent, image=background_image)
-        background_label.place(x=0, y=0, relwidth=1, relheight=1)
-'''
+
         LaunchLabel=tk.Label(self, text='',font=boringFont)
+        LaunchLabel["bg"]=bgColor
         LaunchLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateLaunchLabel(LaunchLabel):
             def update():
@@ -310,6 +315,7 @@ class GraphPage(tk.Frame):
 
 
         MBOLabel=tk.Label(self, text='',font=boringFont)
+        MBOLabel["bg"]=bgColor
         MBOLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateMBOLabel(MBOLabel):
             def update():
@@ -319,6 +325,7 @@ class GraphPage(tk.Frame):
         UpdateMBOLabel(MBOLabel)
 
         apogeeLabel=tk.Label(self, text='',font=boringFont)
+        apogeeLabel["bg"]=bgColor
         apogeeLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateApogeeLabel(apogeeLabel):
             def update():
@@ -332,6 +339,7 @@ class GraphPage(tk.Frame):
     
 
         LandingLabel=tk.Label(self, text='',font=boringFont)
+        LandingLabel["bg"]=bgColor
         LandingLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateLandingLabel(LandingLabel):
             def update():
@@ -342,6 +350,7 @@ class GraphPage(tk.Frame):
 
 
         GPSLabel=tk.Label(self, text='',font=boringFont)
+        GPSLabel["bg"]=bgColor
         GPSLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateGPSLabel(GPSLabel):
             def update():
@@ -355,6 +364,7 @@ class GraphPage(tk.Frame):
 
         
         altitudeLabel=tk.Label(self, text='',font=boringFont)
+        altitudeLabel["bg"]=bgColor
         altitudeLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateAltLabel(altitudeLabel):
             def update():
@@ -365,8 +375,16 @@ class GraphPage(tk.Frame):
                 altitudeLabel.after(100,update)
             update()
         UpdateAltLabel(altitudeLabel)
+        
 
+        def EndProgram():
+            sys.exit()
 
+        endButton=tk.Button(self,text="End Program",command=EndProgram)
+        endButton["highlightbackground"]=bgColor
+        endButton.pack(anchor=tk.W,pady=10,padx=10)
+
+os.system('clear')
 app=GUI()
 app.geometry("1920x1080")
 ani = FuncAnimation(plt.gcf(), animate, interval = 50)
