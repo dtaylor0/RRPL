@@ -3,9 +3,13 @@ import sys
 from time import sleep
 import datetime as dt
 import os
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-import tkinter
+import tkinter as tk
+from playsound import playsound
 
 alt=0
 barom=1
@@ -136,7 +140,10 @@ def CheckApogee():
         apogeeConfidence+=1
     if apogeeConfidence>minCertaintyApogee:
         apogeeReached=True
-        apogeeHeight=recentData[-3][alt]
+        playsound("apogee.mp3",False)
+        for dataLine in recentData:
+            if dataLine[alt]>apogeeHeight:
+                apogeeHeight=dataLine[alt]
 
 
 '''
@@ -191,7 +198,6 @@ def animate(i):
     strData = line.split()
     if (len(strData) < 10):
         return
-    print(line)
     data=[float(i) for i in strData]
     data[Ay] *= -9.81
     data.append(time)
@@ -212,6 +218,7 @@ def animate(i):
         '''
     if apogeeReached and not hasLanded:
         CheckLanded()
+    os.system('clear')
     #print 'has launched: %s\nmbo: %s\napogee reached: %s\nmain deployed: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, mainDeployed, hasLanded)
     print 'has launched: %s\nmbo: %s\napogee reached: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, hasLanded)
     if hasLanded:
@@ -221,8 +228,8 @@ def animate(i):
     currAlt= 0.1 * data[alt] + 0.9 * currAlt
     currAy=0.1 + data[Ay] + 0.9 * currAy
     x_vals.append(data[t]/1000.0)
-    y_vals.append(currAlt)
-    y2_vals.append(currAy)
+    y_vals.append(data[alt])
+    y2_vals.append(data[Ay])
     ax1.cla()
     ax2.cla()
     ax1.set_title(dt.datetime.now().strftime("%Y-%m-%d_%H.%M.%S"))
@@ -233,11 +240,136 @@ def animate(i):
     color = 'g'
     ax2.set_ylabel('vertical acceleration (m/s^2)',color=color)
     ax2.plot(x_vals,y2_vals,color=color)
-   
+
+
+
+class GUI(tk.Tk):
+
+    def __init__(self, *args, **kwargs):
+
+        tk.Tk.__init__(self, *args, **kwargs)
+
+        tk.Tk.wm_title(self, "Data Visuals")
+
+
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand = True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        self.frames = {}
+
+        for F in [GraphPage]:
+
+            frame = F(container, self)
+
+            self.frames[F] = frame
+
+            frame.grid(row=0, column=0, sticky="nsew")
+
+        self.show_frame(GraphPage)
+
+    def show_frame(self, cont):
+
+        frame = self.frames[cont]
+        frame.tkraise()
+
+
+
+
+thisString=tk.StringVar()
+stupidFont=("Comic Sans MS",35,"bold")
+boringFont=("Helvetica",20)
+
+class GraphPage(tk.Frame):
+
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Beeg Rocket Go Up",font=stupidFont)
+        label.pack(pady=10,padx=10)
+        canvas = FigureCanvasTkAgg(fig, self)
+        canvas.show()
+        canvas.get_tk_widget().pack(side=tk.RIGHT)
+
+        toolbar = NavigationToolbar2TkAgg(canvas, self)
+        toolbar.update()
+        canvas._tkcanvas.pack(side=tk.RIGHT, expand=True)
+'''
+        background_image=tk.PhotoImage(file="image.png")
+        background_label = tk.Label(parent, image=background_image)
+        background_label.place(x=0, y=0, relwidth=1, relheight=1)
+'''
+        LaunchLabel=tk.Label(self, text='',font=boringFont)
+        LaunchLabel.pack(anchor=tk.W,pady=10,padx=10)
+        def UpdateLaunchLabel(LaunchLabel):
+            def update():
+                LaunchLabel.config(text="Has Launched: "+str(hasLaunched))
+                LaunchLabel.after(100,update)
+            update()
+        UpdateLaunchLabel(LaunchLabel)
+
+
+        MBOLabel=tk.Label(self, text='',font=boringFont)
+        MBOLabel.pack(anchor=tk.W,pady=10,padx=10)
+        def UpdateMBOLabel(MBOLabel):
+            def update():
+                MBOLabel.config(text="Motor Burnout: "+str(mbo))
+                MBOLabel.after(100,update)
+            update()
+        UpdateMBOLabel(MBOLabel)
+
+        apogeeLabel=tk.Label(self, text='',font=boringFont)
+        apogeeLabel.pack(anchor=tk.W,pady=10,padx=10)
+        def UpdateApogeeLabel(apogeeLabel):
+            def update():
+                if not apogeeReached:
+                    apogeeLabel.config(text='Apogee Reached: False')
+                else:
+                    apogeeLabel.config(text='Apogee Reached: True, '+str(apogeeHeight)+" meters.")
+                apogeeLabel.after(100,update)
+            update()
+        UpdateApogeeLabel(apogeeLabel)
+    
+
+        LandingLabel=tk.Label(self, text='',font=boringFont)
+        LandingLabel.pack(anchor=tk.W,pady=10,padx=10)
+        def UpdateLandingLabel(LandingLabel):
+            def update():
+                LandingLabel.config(text="Has Landed: "+str(hasLanded))
+                LandingLabel.after(100,update)
+            update()
+        UpdateLandingLabel(LandingLabel)
+
+
+        GPSLabel=tk.Label(self, text='',font=boringFont)
+        GPSLabel.pack(anchor=tk.W,pady=10,padx=10)
+        def UpdateGPSLabel(GPSLabel):
+            def update():
+                try:
+                    GPSLabel.config(text='GPS coordinates: '+str(recentData[-1][GPS_LA])+', '+str(recentData[-1][GPS_LO]))
+                except:
+                    GPSLabel.config(text='waiting for data...')
+                GPSLabel.after(100,update)
+            update()
+        UpdateGPSLabel(GPSLabel)
+
+        
+        altitudeLabel=tk.Label(self, text='',font=boringFont)
+        altitudeLabel.pack(anchor=tk.W,pady=10,padx=10)
+        def UpdateAltLabel(altitudeLabel):
+            def update():
+                try:
+                    altitudeLabel.config(text='altitude: '+str(recentData[-1][alt])+' meters')
+                except:
+                    altitudeLabel.config(text='waiting for data...')
+                altitudeLabel.after(100,update)
+            update()
+        UpdateAltLabel(altitudeLabel)
+
+
+app=GUI()
+app.geometry("1920x1080")
 ani = FuncAnimation(plt.gcf(), animate, interval = 50)
-plt.show()
+app.mainloop()
+#plt.show()
 f.close()
-
-
-
-
