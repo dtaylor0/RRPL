@@ -120,6 +120,7 @@ def CheckLaunch():
         hasLaunched=True
         timeLaunched=recentData[-2][t]
         heightAtLaunch=recentData[-2][alt]
+        playsound("VOice/Launch.mp3",False)
 
 def CheckMBO():
     global hasLaunched
@@ -129,6 +130,7 @@ def CheckMBO():
     #if vertical acceleration is < 0
     if recentData[-1][Ay]<0:
         mbo=True
+        playsound("VOice/Burnout.mp3",False)
 
 def CheckApogee():
     global mbo
@@ -141,35 +143,12 @@ def CheckApogee():
         apogeeConfidence+=1
     if apogeeConfidence>minCertaintyApogee:
         apogeeReached=True
-        playsound("apogee.mp3",False)
+        playsound("VOice/apogee.mp3",False)
         for dataLine in recentData:
             if dataLine[alt]>apogeeHeight:
                 apogeeHeight=dataLine[alt]
 
 
-'''
-def CheckMainDeployed():
-    global mainDeployed
-    global mainConfidence
-    global minCertaintyMain
-    currVelocity=(recentData[-1][alt]-recentData[-2][alt])/(recentData[-1][t]-recentData[-2][t])*1000
-    prevVelocity=(recentData[5][alt]-recentData[4][alt])/(recentData[5][t]-recentData[4][t])*1000
-    prevVelocity2=(recentData[1][alt]-recentData[0][alt])/(recentData[1][t]-recentData[0][t])*1000
-    currAcc=(currVelocity-prevVelocity)/(recentData[-1][t]-recentData[4][t])*1000
-    prevAcc=(prevVelocity-prevVelocity2)/(recentData[5][t]-recentData[0][t])*1000
-    #print 'difference in acc: %f' % (abs(currAcc/1000-prevAcc/1000))
-    #print 'currAcc: %f\nprevAcc: %f' % (currAcc/1000, prevAcc/1000)
-    
-    if currAcc>=0:
-        mainConfidence+=1
-    if mainConfidence>=minCertaintyMain:
-        mainDeployed=True
-        #mainConfidence+=1
-    #if abs(currVelocity-prevVelocity)>TOL_Main:
-    #    mainConfidence+=1
-    #if mainConfidence >= minCertaintyMain:
-        #mainDeployed=True
-'''
 
 def CheckLanded():
     global hasLanded
@@ -182,6 +161,7 @@ def CheckLanded():
     if abs(recentData[9][alt]-recentData[0][alt])<TOL_Landed:
         hasLanded=True
         timeLanded=recentData[0][t]
+        playsound("VOice/GroundHit.mp3",False)
 
 
 def animate(i):
@@ -207,7 +187,6 @@ def animate(i):
     AddDataLine(data)
     if data[Ay]>Ay_max:
         Ay_max=data[Ay]
-    #print "current highest Ay: %f" % (Ay_max)
     if not hasLaunched:
         CheckLaunch()
     elif not mbo:
@@ -221,7 +200,6 @@ def animate(i):
     if apogeeReached and not hasLanded:
         CheckLanded()
     os.system('clear')
-    #print 'has launched: %s\nmbo: %s\napogee reached: %s\nmain deployed: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, mainDeployed, hasLanded)
     print ('has launched: %s\nmbo: %s\napogee reached: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, hasLanded))
     if hasLanded:
         print ('flight duration: %f' % ((timeLanded-timeLaunched)))
@@ -288,13 +266,15 @@ class GraphPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
-
+        #set background color
         self.configure(bg=bgColor)
         
-
+        #title label
         label = tk.Label(self, text="Beeg Rocket Go Up",font=stupidFont)
         label["bg"]=bgColor
         label.pack(pady=10,padx=10)
+
+        #graph widget
         canvas = FigureCanvasTkAgg(fig, self)
         canvas.show()
         canvas.get_tk_widget().pack(side=tk.BOTTOM,fill=tk.BOTH,expand=True)
@@ -303,7 +283,8 @@ class GraphPage(tk.Frame):
         toolbar.update()
         canvas._tkcanvas.pack(side=tk.RIGHT, expand=True)
 
-        LaunchLabel=tk.Label(self, text='',font=boringFont)
+        #launch label
+        LaunchLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
         LaunchLabel["bg"]=bgColor
         LaunchLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateLaunchLabel(LaunchLabel):
@@ -313,8 +294,8 @@ class GraphPage(tk.Frame):
             update()
         UpdateLaunchLabel(LaunchLabel)
 
-
-        MBOLabel=tk.Label(self, text='',font=boringFont)
+        #mbo label
+        MBOLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
         MBOLabel["bg"]=bgColor
         MBOLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateMBOLabel(MBOLabel):
@@ -324,7 +305,8 @@ class GraphPage(tk.Frame):
             update()
         UpdateMBOLabel(MBOLabel)
 
-        apogeeLabel=tk.Label(self, text='',font=boringFont)
+        #apogee label
+        apogeeLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
         apogeeLabel["bg"]=bgColor
         apogeeLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateApogeeLabel(apogeeLabel):
@@ -332,13 +314,13 @@ class GraphPage(tk.Frame):
                 if not apogeeReached:
                     apogeeLabel.config(text='Apogee Reached: False')
                 else:
-                    apogeeLabel.config(text='Apogee Reached: True, '+str(apogeeHeight)+" meters.")
+                    apogeeLabel.config(text='Apogee Reached at '+str(apogeeHeight)+" meters.")
                 apogeeLabel.after(100,update)
             update()
         UpdateApogeeLabel(apogeeLabel)
     
-
-        LandingLabel=tk.Label(self, text='',font=boringFont)
+        #landing label
+        LandingLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
         LandingLabel["bg"]=bgColor
         LandingLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateLandingLabel(LandingLabel):
@@ -348,8 +330,8 @@ class GraphPage(tk.Frame):
             update()
         UpdateLandingLabel(LandingLabel)
 
-
-        GPSLabel=tk.Label(self, text='',font=boringFont)
+        #GPS label
+        GPSLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
         GPSLabel["bg"]=bgColor
         GPSLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateGPSLabel(GPSLabel):
@@ -362,8 +344,8 @@ class GraphPage(tk.Frame):
             update()
         UpdateGPSLabel(GPSLabel)
 
-        
-        altitudeLabel=tk.Label(self, text='',font=boringFont)
+        #altitude label
+        altitudeLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
         altitudeLabel["bg"]=bgColor
         altitudeLabel.pack(anchor=tk.W,pady=10,padx=10)
         def UpdateAltLabel(altitudeLabel):
@@ -376,7 +358,7 @@ class GraphPage(tk.Frame):
             update()
         UpdateAltLabel(altitudeLabel)
         
-
+        #end program button
         def EndProgram():
             sys.exit()
 
@@ -386,8 +368,9 @@ class GraphPage(tk.Frame):
 
 os.system('clear')
 app=GUI()
-app.geometry("1920x1080")
+app.attributes('-fullscreen',True)
+app.attributes('-topmost',True)
+app.overrideredirect(1)
 ani = FuncAnimation(plt.gcf(), animate, interval = 50)
 app.mainloop()
-#plt.show()
 f.close()
