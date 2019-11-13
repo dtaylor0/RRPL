@@ -165,7 +165,6 @@ def CheckLanded():
 
 
 def animate(i):
-    sleep(0.1)
     global ser
     global currAlt
     global currAy
