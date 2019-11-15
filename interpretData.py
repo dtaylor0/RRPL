@@ -92,10 +92,10 @@ users={'drew':['/dev/cu.usbserial-1410','/dev/cu.usbserial-1420'],
 
 fig = plt.figure()
 ax1 = fig.add_subplot(1,1,1)
-ax2 = ax1.twinx()
+#ax2 = ax1.twinx()
 x_vals = []
 y_vals = []
-y2_vals = []
+#y2_vals = []
 try:
     user=sys.argv[1]
 except:
@@ -122,22 +122,6 @@ if ser==None:
         sys.exit()
     f=open(fName,"r")
         
-"""
-try:
-    ser=serial.Serial('/dev/cu.usbserial-1420',9600)
-except:
-    try:
-        ser=serial.Serial('/dev/cu.usbserial-1410',9600)
-    except:
-        serialPortWorks=False
-        try:
-            fName=sys.argv[2]
-        except:
-            print ('Error: No working serial port and no file name in arguments.')
-            sys.exit()
-        f=open(fName,"r")
-"""
-
 
 
 def AddDataLine(dataLine):
@@ -211,7 +195,7 @@ def animate(i):
         line = ser.readline().decode('utf-8')[:-1]
     else:
         line = f.readline()
-    print(line)
+    #print(line)
     strData = line.split()
     if (len(strData) < 10):
         return
@@ -234,27 +218,28 @@ def animate(i):
         '''
     if apogeeReached and not hasLanded:
         CheckLanded()
-    os.system('clear')
-    print ('has launched: %s\nmbo: %s\napogee reached: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, hasLanded))
-    if hasLanded:
-        print ('flight duration: %f' % ((timeLanded-timeLaunched)))
-    if apogeeReached:
-        print ('height at apogee: %f' % (apogeeHeight))
+    #os.system('clear')
+    #print ('has launched: %s\nmbo: %s\napogee reached: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, hasLanded))
+    #if hasLanded:
+    #    print ('flight duration: %f' % ((timeLanded-timeLaunched)))
+    #if apogeeReached:
+    #    print ('height at apogee: %f' % (apogeeHeight))
     currAlt= 0.1 * data[alt] + 0.9 * currAlt
     currAy=0.1 + data[Ay] + 0.9 * currAy
     x_vals.append(data[t]/1000.0)
     y_vals.append(data[alt])
-    y2_vals.append(data[Ay])
+    #y2_vals.append(data[Ay])
     ax1.cla()
-    ax2.cla()
+    #ax2.cla()
     ax1.set_title(dt.datetime.now().strftime("%Y-%m-%d_%H.%M.%S"))
     color = 'r'
     ax1.set_xlabel('time (s)')
     ax1.set_ylabel('altitude (m)',color=color)
     ax1.plot(x_vals, y_vals,color=color)
-    color = 'g'
-    ax2.set_ylabel('vertical acceleration (m/s^2)',color=color)
-    ax2.plot(x_vals,y2_vals,color=color)
+    return [ax1]
+    #color = 'g'
+    #ax2.set_ylabel('vertical acceleration (m/s^2)',color=color)
+    #ax2.plot(x_vals,y2_vals,color=color)
 
 
 
@@ -293,6 +278,7 @@ class GUI(tk.Tk):
 
 
 stupidFont=("Comic Sans MS",35,"bold")
+bigBoringFont=("Arial",35)
 boringFont=("Helvetica",20)
 bgColor="#b9c5ca"
 
@@ -305,7 +291,7 @@ class GraphPage(tk.Frame):
         self.configure(bg=bgColor)
         
         #title label
-        label = tk.Label(self, text="Beeg Rocket Go Up",font=stupidFont)
+        label = tk.Label(self, text="RRPL",font=bigBoringFont)
         label["bg"]=bgColor
         label.pack(pady=10,padx=10)
 
@@ -406,6 +392,6 @@ app=GUI()
 app.attributes('-fullscreen',True)
 app.attributes('-topmost',True)
 app.overrideredirect(1)
-ani = FuncAnimation(plt.gcf(), animate, interval = 50)
+ani = FuncAnimation(plt.gcf(), animate, interval = 50, blit=True)
 app.mainloop()
 f.close()
