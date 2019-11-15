@@ -85,12 +85,44 @@ timeLanded=0
 
 serialPortWorks=True
 
+
+users={'drew':['/dev/cu.usbserial-1410','/dev/cu.usbserial-1420'],
+        'aaron':['COM3','COM6','COM7']}
+
+
 fig = plt.figure()
 ax1 = fig.add_subplot(1,1,1)
 ax2 = ax1.twinx()
 x_vals = []
 y_vals = []
 y2_vals = []
+try:
+    user=sys.argv[1]
+except:
+    print ('Error: No user given, cannot check serial ports. '+ 
+            'Function call should be \"python interpretData.py {user} {file (optional)}\"')
+    sys.exit()
+
+
+
+ser=None
+if user in users.keys():
+    for port in users.get(user):
+        try:
+            ser=serial.Serial(port,9600)
+        except:
+            pass
+
+if ser==None:
+    serialPortWorks=False
+    try:
+        fName=sys.argv[2]
+    except:
+        print ('Error: No working serial port and no file name in arguments.')
+        sys.exit()
+    f=open(fName,"r")
+        
+"""
 try:
     ser=serial.Serial('/dev/cu.usbserial-1420',9600)
 except:
@@ -99,11 +131,14 @@ except:
     except:
         serialPortWorks=False
         try:
-            fName=sys.argv[1]
+            fName=sys.argv[2]
         except:
             print ('Error: No working serial port and no file name in arguments.')
             sys.exit()
         f=open(fName,"r")
+"""
+
+
 
 def AddDataLine(dataLine):
     if len(recentData)>=10:
@@ -176,6 +211,7 @@ def animate(i):
         line = ser.readline().decode('utf-8')[:-1]
     else:
         line = f.readline()
+    print(line)
     strData = line.split()
     if (len(strData) < 10):
         return
