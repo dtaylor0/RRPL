@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import Tkinter as tk
 from playsound import playsound
+import threading
 
 
 alt=0
@@ -31,22 +32,15 @@ My=11
 Mz=12
 #time
 t=13
-'''
 
-alt=0
-barom=1
-Gx=2
-Gy=3
-Gz=4
-Ax=5
-Ay=6
-Az=7
-Mx=8
-My=9
-Mz=10
-t=11
-'''
+
 time=0.0
+
+
+fig = plt.figure()
+ax1 = fig.add_subplot(1,1,1)
+x_vals = []
+y_vals = []
 
 #launch vars
 TOL_Launch=10
@@ -76,8 +70,6 @@ heightAtLaunch=0
 #list of last 10 data readings
 recentData=[]
 
-currAlt=0
-currAy=0
 Ay_max=0.0
 
 timeLaunched=0
@@ -89,39 +81,6 @@ serialPortWorks=True
 users={'drew':['/dev/cu.usbserial-1410','/dev/cu.usbserial-1420'],
         'aaron':['COM3','COM6','COM7']}
 
-
-fig = plt.figure()
-ax1 = fig.add_subplot(1,1,1)
-#ax2 = ax1.twinx()
-x_vals = []
-y_vals = []
-#y2_vals = []
-try:
-    user=sys.argv[1]
-except:
-    print ('Error: No user given, cannot check serial ports. '+ 
-            'Function call should be \"python interpretData.py {user} {file (optional)}\"')
-    sys.exit()
-
-
-
-ser=None
-if user in users.keys() and len(sys.argv)<3:
-    for port in users.get(user):
-        try:
-            ser=serial.Serial(port,9600)
-        except:
-            pass
-
-if ser==None:
-    serialPortWorks=False
-    try:
-        fName=sys.argv[2]
-    except:
-        print ('Error: No working serial port and no file name in arguments.')
-        sys.exit()
-    f=open(fName,"r")
-        
 
 
 def AddDataLine(dataLine):
@@ -185,27 +144,26 @@ def CheckLanded():
 
 def animate(i):
     global ser
-    global currAlt
-    global currAy
     global Ay_max
     global time
-    if serialPortWorks:
-        while (ser.in_waiting < 1):
-            pass
-        line = ser.readline().decode('utf-8')[:-1]
-    else:
+    #if serialPortWorks:
+    #    while (ser.in_waiting < 1):
+    #        pass
+    #    line = ser.readline().decode('utf-8')[:-1]
+    if not serialPortWorks:
         line = f.readline()
-    #print(line)
-    strData = line.split()
-    if (len(strData) < 10):
-        return
-    data=[float(i) for i in strData]
-    data[Ay] *= -9.81
-    data.append(time)
-    time+=0.5
-    AddDataLine(data)
-    if data[Ay]>Ay_max:
-        Ay_max=data[Ay]
+        strData = line.split()
+        if (len(strData) < 10):
+            return
+        data=[float(i) for i in strData]
+        data[Ay] *= -9.81
+        data.append(time)
+        time+=0.5
+        AddDataLine(data)
+        x_vals.append(data[t]/1000.0)
+        y_vals.append(data[alt])
+
+
     if not hasLaunched:
         CheckLaunch()
     elif not mbo:
@@ -218,28 +176,13 @@ def animate(i):
         '''
     if apogeeReached and not hasLanded:
         CheckLanded()
-    #os.system('clear')
-    #print ('has launched: %s\nmbo: %s\napogee reached: %s\nhas landed: %s\n' % (hasLaunched, mbo, apogeeReached, hasLanded))
-    #if hasLanded:
-    #    print ('flight duration: %f' % ((timeLanded-timeLaunched)))
-    #if apogeeReached:
-    #    print ('height at apogee: %f' % (apogeeHeight))
-    currAlt= 0.1 * data[alt] + 0.9 * currAlt
-    currAy=0.1 + data[Ay] + 0.9 * currAy
-    x_vals.append(data[t]/1000.0)
-    y_vals.append(data[alt])
-    #y2_vals.append(data[Ay])
     ax1.cla()
-    #ax2.cla()
     ax1.set_title(dt.datetime.now().strftime("%Y-%m-%d_%H.%M.%S"))
     color = 'r'
     ax1.set_xlabel('time (s)')
     ax1.set_ylabel('altitude (m)',color=color)
     ax1.plot(x_vals, y_vals,color=color)
     return [ax1]
-    #color = 'g'
-    #ax2.set_ylabel('vertical acceleration (m/s^2)',color=color)
-    #ax2.plot(x_vals,y2_vals,color=color)
 
 
 
@@ -387,11 +330,71 @@ class GraphPage(tk.Frame):
         endButton["highlightbackground"]=bgColor
         endButton.pack(anchor=tk.W,pady=10,padx=10)
 
+try:
+    user=sys.argv[1]
+except:
+    print ('Error: No user given, cannot check serial ports. '+ 
+            'Function call should be \"python interpretData.py {user} {file (optional)}\"')
+    sys.exit()
+
+
+
+ser=None
+if user in users.keys() and len(sys.argv)<3:
+    for port in users.get(user):
+        try:
+            ser=serial.Serial(port,9600)
+        except:
+            pass
+
+if ser==None:
+    serialPortWorks=False
+    try:
+        fName=sys.argv[2]
+    except:
+        print ('Error: No working serial port and no file name in arguments.')
+        sys.exit()
+    f=open(fName,"r")
+        
+
 os.system('clear')
 app=GUI()
-app.attributes('-fullscreen',True)
-app.attributes('-topmost',True)
-app.overrideredirect(1)
-ani = FuncAnimation(plt.gcf(), animate, interval = 50, blit=True)
-app.mainloop()
+app.state('zoomed')
+
+
+def GetData():
+    while True:
+        while (ser.in_waiting < 1):
+            pass
+        line = ser.readline().decode('utf-8')[:-1]
+        strData = line.split()
+        if (len(strData) < 10):
+            continue
+        data=[float(i) for i in strData]
+        data[Ay]*=-9.81
+        x_vals.append(data[t]/1000)
+        y_vals.append(data[alt])
+        AddDataLine(data)
+
+
+def RunVisuals():
+    ani = FuncAnimation(plt.gcf(), animate, interval = 50, blit=True)
+    app.mainloop()
+
+
+def main():
+    if serialPortWorks:
+        getData = threading.Thread(name='GetData',target=background)
+        runVisuals = threading.Thread(name='RunVisuals',target=foreground)
+        getData.start()
+        runVisuals.start()
+    else:
+        RunVisuals()
+
+
+
+if __name__ == "__main__":
+    main()
+
+
 f.close()
