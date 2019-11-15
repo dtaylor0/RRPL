@@ -106,7 +106,7 @@ except:
 
 
 ser=None
-if user in users.keys():
+if user in users.keys() and len(sys.argv)<3:
     for port in users.get(user):
         try:
             ser=serial.Serial(port,9600)
