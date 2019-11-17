@@ -12,7 +12,7 @@ import Tkinter as tk
 from playsound import playsound
 import threading
 
-
+'''
 alt=0
 barom=1
 #GPS
@@ -32,6 +32,28 @@ My=11
 Mz=12
 #time
 t=13
+'''
+
+
+alt=0
+#GPS
+GPS_LA=1
+GPS_LO=2
+#gyroscope
+Gx=3
+Gy=4
+Gz=5
+#accelerometer
+Ax=6
+Ay=7
+Az=8
+#magnemometer
+Mx=9
+My=10
+Mz=11
+#time
+t=12
+
 
 
 time=0.0
@@ -142,10 +164,15 @@ def CheckLanded():
         playsound("VOice/GroundHit.mp3",False)
 
 
+
+
+
 def animate(i):
     global ser
     global Ay_max
     global time
+    global x_vals
+    global y_vals
     #if serialPortWorks:
     #    while (ser.in_waiting < 1):
     #        pass
@@ -160,9 +187,8 @@ def animate(i):
         data.append(time)
         time+=0.5
         AddDataLine(data)
-        x_vals.append(data[t]/1000.0)
+        x_vals.append(data[t])
         y_vals.append(data[alt])
-
 
     if not hasLaunched:
         CheckLaunch()
@@ -324,7 +350,8 @@ class GraphPage(tk.Frame):
         
         #end program button
         def EndProgram():
-            sys.exit()
+
+            os._exit(1)
 
         endButton=tk.Button(self,text="End Program",command=EndProgram)
         endButton["highlightbackground"]=bgColor
@@ -344,6 +371,7 @@ if user in users.keys() and len(sys.argv)<3:
     for port in users.get(user):
         try:
             ser=serial.Serial(port,9600)
+            
         except:
             pass
 
@@ -357,37 +385,50 @@ if ser==None:
     f=open(fName,"r")
         
 
-os.system('clear')
 app=GUI()
 app.state('zoomed')
 
 
-def GetData():
-    while True:
-        while (ser.in_waiting < 1):
-            pass
-        line = ser.readline().decode('utf-8')[:-1]
-        strData = line.split()
-        if (len(strData) < 10):
-            continue
-        data=[float(i) for i in strData]
-        data[Ay]*=-9.81
-        x_vals.append(data[t]/1000)
-        y_vals.append(data[alt])
-        AddDataLine(data)
 
 
 def RunVisuals():
+    global x_vals
+    global y_vals
     ani = FuncAnimation(plt.gcf(), animate, interval = 50, blit=True)
     app.mainloop()
 
 
 def main():
+    global x_vals
+    global y_vals
+
+    lock=threading.Lock()
+    def GetData():
+
+        global x_vals
+        global y_vals
+        with lock:
+            while True:
+                while (ser.in_waiting < 1):
+                    pass
+                line = ser.readline().decode('utf-8')[:-1]
+                strData = line.split()
+                if (len(strData) < 10):
+                    continue
+                data=[float(i) for i in strData]
+                data[Ay]*=-9.81
+                x_vals.append(data[t])
+                y_vals.append(data[alt])
+                AddDataLine(data)
+
+
     if serialPortWorks:
-        getData = threading.Thread(name='GetData',target=background)
-        runVisuals = threading.Thread(name='RunVisuals',target=foreground)
+        
+        #runVisuals = threading.Thread(name='RunVisuals',target=RunVisuals)
+        getData = threading.Thread(name='GetData',target=GetData)
+        #runVisuals.start()
         getData.start()
-        runVisuals.start()
+        RunVisuals()
     else:
         RunVisuals()
 
@@ -396,5 +437,5 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-f.close()
+if not serialPortWorks:
+    f.close()
