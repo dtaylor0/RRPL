@@ -92,7 +92,6 @@ heightAtLaunch=0
 #list of last 10 data readings
 recentData=[]
 
-Ay_max=0.0
 
 timeLaunched=0
 timeLanded=0
@@ -128,7 +127,7 @@ def CheckMBO():
     if not hasLaunched:
         return
     #if vertical acceleration is < 0
-    if recentData[-1][Ay]<0:
+    if recentData[-1][Az]<0:
         mbo=True
         playsound("VOice/Burnout.mp3",False)
 
@@ -169,7 +168,6 @@ def CheckLanded():
 
 def animate(i):
     global ser
-    global Ay_max
     global time
     global x_vals
     global y_vals
@@ -183,7 +181,6 @@ def animate(i):
         if (len(strData) < 10):
             return
         data=[float(i) for i in strData]
-        data[Ay] *= -9.81
         data.append(time)
         time+=0.5
         AddDataLine(data)
@@ -394,7 +391,7 @@ app.state('zoomed')
 def RunVisuals():
     global x_vals
     global y_vals
-    ani = FuncAnimation(plt.gcf(), animate, interval = 50, blit=True)
+    ani = FuncAnimation(plt.gcf(), animate, interval = 50)
     app.mainloop()
 
 
@@ -415,11 +412,14 @@ def main():
                 strData = line.split()
                 if (len(strData) < 10):
                     continue
+                gpsFile=open('gpsData.txt','a+')
+                gpsFile.write(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
+                print(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
                 data=[float(i) for i in strData]
-                data[Ay]*=-9.81
                 x_vals.append(data[t])
                 y_vals.append(data[alt])
                 AddDataLine(data)
+                gpsFile.close()
 
 
     if serialPortWorks:
