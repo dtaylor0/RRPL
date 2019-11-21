@@ -14,7 +14,6 @@ import Tkinter as tk
 from playsound import playsound
 import threading
 
-'''
 alt=0
 barom=1
 #GPS
@@ -55,7 +54,7 @@ My=10
 Mz=11
 #time
 t=12
-
+'''
 
 
 time=0.0
