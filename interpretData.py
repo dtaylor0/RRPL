@@ -1,18 +1,15 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
-import serial
 import sys
-from time import sleep
-import datetime as dt
 import os
-import matplotlib
-matplotlib.use("TkAgg")
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-import Tkinter as tk
-from playsound import playsound
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+import serial
 import threading
+from playsound import playsound
 
 alt=0
 barom=1
@@ -33,37 +30,9 @@ My=11
 Mz=12
 #time
 t=13
-'''
 
-
-alt=0
-#GPS
-GPS_LA=1
-GPS_LO=2
-#gyroscope
-Gx=3
-Gy=4
-Gz=5
-#accelerometer
-Ax=6
-Ay=7
-Az=8
-#magnemometer
-Mx=9
-My=10
-Mz=11
-#time
-t=12
-'''
-
-
-time=0.0
-
-
-fig = plt.figure()
-ax1 = fig.add_subplot(1,1,1)
-x_vals = []
-y_vals = []
+x_vals=[]
+y_vals=[]
 
 #launch vars
 TOL_Launch=10
@@ -98,12 +67,13 @@ timeLaunched=0
 timeLanded=0
 
 serialPortWorks=True
-
-
+ser=None
+f=None
 users={'drew':['/dev/cu.usbserial-1410','/dev/cu.usbserial-1420'],
         'aaron':['COM3','COM6','COM7']}
 
-
+def Sound(name):
+    playsound(name,False)
 
 def AddDataLine(dataLine):
     if len(recentData)>=10:
@@ -120,7 +90,9 @@ def CheckLaunch():
         hasLaunched=True
         timeLaunched=recentData[-2][t]
         heightAtLaunch=recentData[-2][alt]
-        playsound("VOice/Launch.mp3",False)
+        #sound=threading.Thread(target=Sound,args=("VOice/Launch.mp3",))
+        #sound.start()
+        #playsound("VOice/Launch.mp3",False)
 
 def CheckMBO():
     global hasLaunched
@@ -130,7 +102,7 @@ def CheckMBO():
     #if vertical acceleration is < 0
     if recentData[-1][Az]<0:
         mbo=True
-        playsound("VOice/Burnout.mp3",False)
+        #playsound("VOice/Burnout.mp3",False)
 
 def CheckApogee():
     global mbo
@@ -143,7 +115,7 @@ def CheckApogee():
         apogeeConfidence+=1
     if apogeeConfidence>minCertaintyApogee:
         apogeeReached=True
-        playsound("VOice/apogee.mp3",False)
+        #playsound("VOice/apogee.mp3",False)
         for dataLine in recentData:
             if dataLine[alt]>apogeeHeight:
                 apogeeHeight=dataLine[alt]
@@ -161,282 +133,220 @@ def CheckLanded():
     if abs(recentData[9][alt]-recentData[0][alt])<TOL_Landed:
         hasLanded=True
         timeLanded=recentData[0][t]
-        playsound("VOice/GroundHit.mp3",False)
+        #playsound("VOice/GroundHit.mp3",False)
 
 
 
 
+class  GraphWidget(pg.GraphicsWindow):
+    pg.setConfigOption('background', 'w')
+    pg.setConfigOption('foreground', 'k')
+    def __init__(self, parent=None, **kargs):
+        global f
+        pg.GraphicsWindow.__init__(self, **kargs)
+        self.setParent(parent)
+        self.setWindowTitle('RRPL')
+        p1 = self.addPlot(labels =  {'left':'Altitude', 'bottom':'Time'})
+        self.ys = []
+        self.curve = p1.plot(self.ys, pen=pg.mkPen({'color': "#F00", 'width': 5}))
+        timer = pg.QtCore.QTimer(self)
+        timer.timeout.connect(lambda: self.update(f))
+        timer.start(100)
 
-def animate(i):
-    global ser
-    global time
+    def update(self,f):
+        global x_vals
+        global y_vals
+        if not serialPortWorks:
+            line=f.readline()
+            strData=line.split()
+            if len(strData)<10:
+                return
+            data = [float(i) for i in strData]
+            AddDataLine(data)
+            x_vals.append(data[t])
+            y_vals.append(data[alt])
+            self.ys=y_vals
+            self.curve.setData(self.ys)
+            self.curve.setPos(data[t]/1000, 0)
+        elif serialPortWorks:
+            self.ys=y_vals
+            self.curve.setData(self.ys)
+            try:
+                self.curve.setPos(x_vals[-1],0)
+            except:
+                self.curve.setPos(1,0)
+        if not hasLaunched:
+            CheckLaunch()
+        elif not mbo:
+            CheckMBO()
+        elif not apogeeReached:
+            CheckApogee()
+            '''
+        elif not mainDeployed:
+            CheckMainDeployed()
+            '''
+        if apogeeReached and not hasLanded:
+            CheckLanded()
+
+lock=threading.Lock()
+def GetData():
     global x_vals
     global y_vals
-    #if serialPortWorks:
-    #    while (ser.in_waiting < 1):
-    #        pass
-    #    line = ser.readline().decode('utf-8')[:-1]
-    if not serialPortWorks:
-        line = f.readline()
-        strData = line.split()
-        if (len(strData) < 10):
-            return
-        data=[float(i) for i in strData]
-        data.append(time)
-        time+=0.5
-        AddDataLine(data)
-        x_vals.append(data[t])
-        y_vals.append(data[alt])
-
-    if not hasLaunched:
-        CheckLaunch()
-    elif not mbo:
-        CheckMBO()
-    elif not apogeeReached:
-        CheckApogee()
-        '''
-    elif not mainDeployed:
-        CheckMainDeployed()
-        '''
-    if apogeeReached and not hasLanded:
-        CheckLanded()
-    ax1.cla()
-    ax1.set_title(dt.datetime.now().strftime("%Y-%m-%d_%H.%M.%S"))
-    color = 'r'
-    ax1.set_xlabel('time (s)')
-    ax1.set_ylabel('altitude (m)',color=color)
-    ax1.plot(x_vals, y_vals,color=color)
-    return [ax1]
+    global ser
+    with lock:
+        while True:
+            while (ser.in_waiting < 1):
+                pass
+            line = ser.readline().decode('utf-8')[:-1]
+            strData = line.split()
+            if (len(strData) < 10):
+                continue
+            #gpsFile=open('gpsData.txt','a+')
+            #gpsFile.write(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
+            #print(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
+            data=[float(i) for i in strData]
+            x_vals.append(data[t])
+            y_vals.append(data[alt])
+            AddDataLine(data)
+            #gpsFile.close()
 
 
+         
 
-class GUI(tk.Tk):
-
-    def __init__(self, *args, **kwargs):
-
-        tk.Tk.__init__(self, *args, **kwargs)
-
-        tk.Tk.wm_title(self, "Data Visuals")
-
-
-        container = tk.Frame(self)
-        container.pack(side="top", fill="both", expand = True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
-
-        self.frames = {}
-
-        for F in [GraphPage]:
-
-            frame = F(container, self)
-
-            self.frames[F] = frame
-
-            frame.grid(row=0, column=0, sticky="nsew")
-
-        self.show_frame(GraphPage)
-
-    def show_frame(self, cont):
-
-        frame = self.frames[cont]
-        frame.tkraise()
-
-
-
-
-stupidFont=("Comic Sans MS",35,"bold")
-bigBoringFont=("Arial",35)
-boringFont=("Helvetica",20)
-bgColor="#b9c5ca"
-
-class GraphPage(tk.Frame):
-
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-
-        #set background color
-        self.configure(bg=bgColor)
-        
-        #title label
-        label = tk.Label(self, text="RRPL",font=bigBoringFont)
-        label["bg"]=bgColor
-        label.pack(pady=10,padx=10)
-
-        #graph widget
-        canvas = FigureCanvasTkAgg(fig, self)
-        canvas.show()
-        canvas.get_tk_widget().pack(side=tk.BOTTOM,fill=tk.BOTH,expand=True)
-
-        toolbar = NavigationToolbar2TkAgg(canvas, self)
-        toolbar.update()
-        canvas._tkcanvas.pack(side=tk.RIGHT, expand=True)
-
-        #launch label
-        LaunchLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
-        LaunchLabel["bg"]=bgColor
-        LaunchLabel.pack(anchor=tk.W,pady=10,padx=10)
-        def UpdateLaunchLabel(LaunchLabel):
-            def update():
-                LaunchLabel.config(text="Has Launched: "+str(hasLaunched))
-                LaunchLabel.after(100,update)
-            update()
-        UpdateLaunchLabel(LaunchLabel)
-
-        #mbo label
-        MBOLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
-        MBOLabel["bg"]=bgColor
-        MBOLabel.pack(anchor=tk.W,pady=10,padx=10)
-        def UpdateMBOLabel(MBOLabel):
-            def update():
-                MBOLabel.config(text="Motor Burnout: "+str(mbo))
-                MBOLabel.after(100,update)
-            update()
-        UpdateMBOLabel(MBOLabel)
-
-        #apogee label
-        apogeeLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
-        apogeeLabel["bg"]=bgColor
-        apogeeLabel.pack(anchor=tk.W,pady=10,padx=10)
-        def UpdateApogeeLabel(apogeeLabel):
-            def update():
-                if not apogeeReached:
-                    apogeeLabel.config(text='Apogee Reached: False')
-                else:
-                    apogeeLabel.config(text='Apogee Reached at '+str(apogeeHeight)+" meters.")
-                apogeeLabel.after(100,update)
-            update()
-        UpdateApogeeLabel(apogeeLabel)
+def window():
+    app = QtGui.QApplication(sys.argv)
     
-        #landing label
-        LandingLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
-        LandingLabel["bg"]=bgColor
-        LandingLabel.pack(anchor=tk.W,pady=10,padx=10)
-        def UpdateLandingLabel(LandingLabel):
-            def update():
-                LandingLabel.config(text="Has Landed: "+str(hasLanded))
-                LandingLabel.after(100,update)
-            update()
-        UpdateLandingLabel(LandingLabel)
+    #initialize main window, mainLayout
+    w = QtGui.QWidget()
+    mainLayout = QtWidgets.QGridLayout(w)
 
-        #GPS label
-        GPSLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
-        GPSLabel["bg"]=bgColor
-        GPSLabel.pack(anchor=tk.W,pady=10,padx=10)
-        def UpdateGPSLabel(GPSLabel):
-            def update():
-                try:
-                    GPSLabel.config(text='GPS coordinates: '+str(recentData[-1][GPS_LA])+', '+str(recentData[-1][GPS_LO]))
-                except:
-                    GPSLabel.config(text='waiting for data...')
-                GPSLabel.after(100,update)
-            update()
-        UpdateGPSLabel(GPSLabel)
+    #initialize dataLayout
+    data = QtGui.QWidget()
+    dataLayout = QtWidgets.QGridLayout(data)
 
-        #altitude label
-        altitudeLabel=tk.Label(self, text='',font=boringFont,borderwidth=2,relief="sunken")
-        altitudeLabel["bg"]=bgColor
-        altitudeLabel.pack(anchor=tk.W,pady=10,padx=10)
-        def UpdateAltLabel(altitudeLabel):
-            def update():
-                try:
-                    altitudeLabel.config(text='altitude: '+str(recentData[-1][alt])+' meters')
-                except:
-                    altitudeLabel.config(text='waiting for data...')
-                altitudeLabel.after(100,update)
-            update()
-        UpdateAltLabel(altitudeLabel)
-        
-        #end program button
-        def EndProgram():
+    #initialize style sheet for data
+    style="background-color: lightgrey; border: 4px inset grey; max-height: 50px; font-size:25px;"
 
-            os._exit(1)
+    #add altitude monitor
+    currAlt = QtGui.QLabel(w)
+    currAlt.setText("waiting for data...")
+    currAlt.setStyleSheet(style)
+    dataLayout.addWidget(currAlt,0,0)
 
-        endButton=tk.Button(self,text="End Program",command=EndProgram)
-        endButton["highlightbackground"]=bgColor
-        endButton.pack(anchor=tk.W,pady=10,padx=10)
+    #add hasLaunched monitor
+    currHasLaunched = QtGui.QLabel(w)
+    currHasLaunched.setText("waiting for data...")
+    currHasLaunched.setStyleSheet(style)
+    dataLayout.addWidget(currHasLaunched,1,0)
 
-try:
-    user=sys.argv[1]
-except:
-    print ('Error: No user given, cannot check serial ports. '+ 
-            'Function call should be \"python interpretData.py {user} {file (optional)}\"')
-    sys.exit()
+    #add mbo monitor
+    currMBO = QtGui.QLabel(w)
+    currMBO.setText("waiting for data...")
+    currMBO.setStyleSheet(style)
+    dataLayout.addWidget(currMBO,2,0)
 
+    #add apogee monitor
+    apogee = QtGui.QLabel(w)
+    apogee.setText("waiting for data...")
+    apogee.setStyleSheet(style)
+    dataLayout.addWidget(apogee,3,0)
 
+    #add GPS_LA monitor
+    currGPS_LA = QtGui.QLabel(w)
+    currGPS_LA.setText("waiting for data...")
+    currGPS_LA.setStyleSheet(style)
+    dataLayout.addWidget(currGPS_LA,4,0)
 
-ser=None
-if user in users.keys() and len(sys.argv)<3:
-    for port in users.get(user):
+    #add GPS_LO monitor
+    currGPS_LO = QtGui.QLabel(w)
+    currGPS_LO.setText("waiting for data...")
+    currGPS_LO.setStyleSheet(style)
+    dataLayout.addWidget(currGPS_LO,5,0)
+    
+    def update():
         try:
-            ser=serial.Serial(port,9600)
-            
+            currAlt.setText("Altitude: "+str(recentData[-1][alt]))
+        except:
+            pass
+        try:
+            currGPS_LA.setText("GPS LA: "+str(recentData[-1][GPS_LA]))
+        except:
+            pass
+        try:
+            currGPS_LO.setText("GPS LO: "+str(recentData[-1][GPS_LO]))
+        except:
+            pass
+        try:
+            currHasLaunched.setText("Has Launched: "+str(hasLaunched))
+        except:
+            pass
+        try:
+            currMBO.setText("Motor Burnout: "+str(mbo))
+        except:
+            pass
+        try:
+            apogee.setText("Apogee Reached: "+str(apogeeReached))
         except:
             pass
 
-if ser==None:
-    serialPortWorks=False
+    timer = QtCore.QTimer()
+    timer.timeout.connect(update)
+    timer.start(100)
+
+
+    #create end program button, add to dataLayout
+    b = QtGui.QPushButton(w)
+    b.setText("End Program")
+    b.clicked.connect(lambda: os._exit(0))
+    dataLayout.addWidget(b,6,0)
+    
+    #add data to mainLayout
+    mainLayout.addWidget(data,0,0)
+    
+    #create graph, add to mainLayout
+    graph = GraphWidget(w)
+    mainLayout.addWidget(graph,0,1)
+    graph.show()
+
+    #start showing window
+    w.setGeometry(app.desktop().availableGeometry())
+    w.setWindowTitle("RRPL")
+    w.show()
+    sys.exit(app.exec_())
+
+#checks whether data will be gotten from an input file or a serial port
+def FindData():
+    global ser
+    global f
+    global serialPortWorks
     try:
-        fName=sys.argv[2]
+        user=sys.argv[1]
     except:
-        print ('Error: No working serial port and no file name in arguments.')
+        print ('Error: No user given, cannot check serial ports. '+
+                'Function call should be \"python interpretData.py {user} {file (optional)}\"')
         sys.exit()
-    f=open(fName,"r")
-        
-
-app=GUI()
-app.state('zoomed')
 
 
+    if user in users.keys() and len(sys.argv)<3:
+        for port in users.get(user):
+            try:
+                ser=serial.Serial(port,9600)
+                return
+            except:
+                pass
 
+    if ser==None:
+        serialPortWorks=False
+        try:
+            fName=sys.argv[2]
+        except:
+            print ('Error: No working serial port and no file name in arguments.')
+            sys.exit()
+        return open(fName,"r")
 
-def RunVisuals():
-    global x_vals
-    global y_vals
-    ani = FuncAnimation(plt.gcf(), animate, interval = 50)
-    app.mainloop()
-
-
-def main():
-    global x_vals
-    global y_vals
-
-    lock=threading.Lock()
-    def GetData():
-
-        global x_vals
-        global y_vals
-        with lock:
-            while True:
-                while (ser.in_waiting < 1):
-                    pass
-                line = ser.readline().decode('utf-8')[:-1]
-                strData = line.split()
-                if (len(strData) < 10):
-                    continue
-                gpsFile=open('gpsData.txt','a+')
-                gpsFile.write(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
-                print(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
-                data=[float(i) for i in strData]
-                x_vals.append(data[t])
-                y_vals.append(data[alt])
-                AddDataLine(data)
-                gpsFile.close()
-
-
-    if serialPortWorks:
-        
-        #runVisuals = threading.Thread(name='RunVisuals',target=RunVisuals)
+if __name__ == '__main__':
+    f=FindData()
+    if not ser == None:
         getData = threading.Thread(name='GetData',target=GetData)
-        #runVisuals.start()
         getData.start()
-        RunVisuals()
-    else:
-        RunVisuals()
-
-
-
-if __name__ == "__main__":
-    main()
-
-if not serialPortWorks:
-    f.close()
+    window()
