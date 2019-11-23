@@ -4,9 +4,6 @@ import sys
 import os
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
 import serial
 import threading
 from playsound import playsound
@@ -148,10 +145,10 @@ class  GraphWidget(pg.GraphicsWindow):
         self.setWindowTitle('RRPL')
         p1 = self.addPlot(labels =  {'left':'Altitude', 'bottom':'Time'})
         self.ys = []
-        self.curve = p1.plot(self.ys, pen=pg.mkPen({'color': "#F00", 'width': 5}))
+        self.curve = p1.plot(self.ys, pen=pg.mkPen({'color': "#F00", 'width': 3}))
         timer = pg.QtCore.QTimer(self)
         timer.timeout.connect(lambda: self.update(f))
-        timer.start(100)
+        timer.start(1)
 
     def update(self,f):
         global x_vals
@@ -161,7 +158,11 @@ class  GraphWidget(pg.GraphicsWindow):
             strData=line.split()
             if len(strData)<10:
                 return
-            data = [float(i) for i in strData]
+            try:
+                data = [float(i) for i in strData]
+            except:
+                return
+            print(str(data[Ax]) + " " + str(data[Ay]) + " " + str(data[Az])+"\n")
             AddDataLine(data)
             x_vals.append(data[t])
             y_vals.append(data[alt])
@@ -204,18 +205,21 @@ def GetData():
             #gpsFile=open('gpsData.txt','a+')
             #gpsFile.write(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
             #print(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
-            data=[float(i) for i in strData]
+            try:
+                data=[float(i) for i in strData]
+            except:
+                continue
             x_vals.append(data[t])
             y_vals.append(data[alt])
             AddDataLine(data)
             #gpsFile.close()
 
 
-         
+
 
 def window():
     app = QtGui.QApplication(sys.argv)
-    
+
     #initialize main window, mainLayout
     w = QtGui.QWidget()
     mainLayout = QtWidgets.QGridLayout(w)
@@ -262,7 +266,7 @@ def window():
     currGPS_LO.setText("waiting for data...")
     currGPS_LO.setStyleSheet(style)
     dataLayout.addWidget(currGPS_LO,5,0)
-    
+
     def update():
         try:
             currAlt.setText("Altitude: "+str(recentData[-1][alt]))
@@ -299,10 +303,10 @@ def window():
     b.setText("End Program")
     b.clicked.connect(lambda: os._exit(0))
     dataLayout.addWidget(b,6,0)
-    
+
     #add data to mainLayout
     mainLayout.addWidget(data,0,0)
-    
+
     #create graph, add to mainLayout
     graph = GraphWidget(w)
     mainLayout.addWidget(graph,0,1)
