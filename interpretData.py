@@ -127,7 +127,7 @@ def CheckLanded():
         return
     if recentData[-1][alt]-heightAtLaunch > TOL_Height:
         return
-    if abs(recentData[9][alt]-recentData[0][alt])<TOL_Landed:
+    if abs(recentData[9][alt]-recentData[5][alt])<TOL_Landed:
         hasLanded=True
         timeLanded=recentData[0][t]
         #playsound("VOice/GroundHit.mp3",False)
@@ -162,7 +162,6 @@ class  GraphWidget(pg.GraphicsWindow):
                 data = [float(i) for i in strData]
             except:
                 return
-            print(str(data[Ax]) + " " + str(data[Ay]) + " " + str(data[Az])+"\n")
             AddDataLine(data)
             x_vals.append(data[t])
             y_vals.append(data[alt])
@@ -255,17 +254,24 @@ def window():
     apogee.setStyleSheet(style)
     dataLayout.addWidget(apogee,3,0)
 
+    #add hasLanded monitor
+    currHasLanded = QtGui.QLabel(w)
+    currHasLanded.setText("waiting for data...")
+    currHasLanded.setStyleSheet(style)
+    dataLayout.addWidget(currHasLanded,4,0)
+    
     #add GPS_LA monitor
     currGPS_LA = QtGui.QLabel(w)
     currGPS_LA.setText("waiting for data...")
     currGPS_LA.setStyleSheet(style)
-    dataLayout.addWidget(currGPS_LA,4,0)
+    dataLayout.addWidget(currGPS_LA,5,0)
 
     #add GPS_LO monitor
     currGPS_LO = QtGui.QLabel(w)
     currGPS_LO.setText("waiting for data...")
     currGPS_LO.setStyleSheet(style)
-    dataLayout.addWidget(currGPS_LO,5,0)
+    dataLayout.addWidget(currGPS_LO,6,0)
+    
 
     def update():
         try:
@@ -292,6 +298,10 @@ def window():
             apogee.setText("Apogee Reached: "+str(apogeeReached))
         except:
             pass
+        try:
+            currHasLanded.setText("Has Landed: "+str(hasLanded))
+        except:
+            pass
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update)
@@ -302,7 +312,7 @@ def window():
     b = QtGui.QPushButton(w)
     b.setText("End Program")
     b.clicked.connect(lambda: os._exit(0))
-    dataLayout.addWidget(b,6,0)
+    dataLayout.addWidget(b,7,0)
 
     #add data to mainLayout
     mainLayout.addWidget(data,0,0)
