@@ -4,6 +4,8 @@ import sys
 import os
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtWebEngineWidgets import QtWebEngineView
 import serial
 import threading
 from playsound import playsound
@@ -223,6 +225,9 @@ def window():
     w = QtGui.QWidget()
     mainLayout = QtWidgets.QGridLayout(w)
 
+    #set background color for w
+    w.setStyleSheet("background-color: #e8e8e8")
+
     #initialize dataLayout
     data = QtGui.QWidget()
     dataLayout = QtWidgets.QGridLayout(data)
@@ -230,47 +235,54 @@ def window():
     #initialize style sheet for data
     style="background-color: lightgrey; border: 4px inset grey; max-height: 50px; font-size:25px;"
 
+    #add logo
+    logo = QtGui.QLabel(w)
+    pixmap= QPixmap('logo.png')
+    logo.setPixmap(pixmap)
+    dataLayout.addWidget(logo,0,0)
+
+
     #add altitude monitor
     currAlt = QtGui.QLabel(w)
     currAlt.setText("waiting for data...")
     currAlt.setStyleSheet(style)
-    dataLayout.addWidget(currAlt,0,0)
+    dataLayout.addWidget(currAlt,1,0)
 
     #add hasLaunched monitor
     currHasLaunched = QtGui.QLabel(w)
     currHasLaunched.setText("waiting for data...")
     currHasLaunched.setStyleSheet(style)
-    dataLayout.addWidget(currHasLaunched,1,0)
+    dataLayout.addWidget(currHasLaunched,2,0)
 
     #add mbo monitor
     currMBO = QtGui.QLabel(w)
     currMBO.setText("waiting for data...")
     currMBO.setStyleSheet(style)
-    dataLayout.addWidget(currMBO,2,0)
+    dataLayout.addWidget(currMBO,3,0)
 
     #add apogee monitor
     apogee = QtGui.QLabel(w)
     apogee.setText("waiting for data...")
     apogee.setStyleSheet(style)
-    dataLayout.addWidget(apogee,3,0)
+    dataLayout.addWidget(apogee,4,0)
 
     #add hasLanded monitor
     currHasLanded = QtGui.QLabel(w)
     currHasLanded.setText("waiting for data...")
     currHasLanded.setStyleSheet(style)
-    dataLayout.addWidget(currHasLanded,4,0)
+    dataLayout.addWidget(currHasLanded,5,0)
     
     #add GPS_LA monitor
     currGPS_LA = QtGui.QLabel(w)
     currGPS_LA.setText("waiting for data...")
     currGPS_LA.setStyleSheet(style)
-    dataLayout.addWidget(currGPS_LA,5,0)
+    dataLayout.addWidget(currGPS_LA,6,0)
 
     #add GPS_LO monitor
     currGPS_LO = QtGui.QLabel(w)
     currGPS_LO.setText("waiting for data...")
     currGPS_LO.setStyleSheet(style)
-    dataLayout.addWidget(currGPS_LO,6,0)
+    dataLayout.addWidget(currGPS_LO,7,0)
     
 
     def update():
@@ -311,8 +323,9 @@ def window():
     #create end program button, add to dataLayout
     b = QtGui.QPushButton(w)
     b.setText("End Program")
+    b.setStyleSheet("background-color:white;")
     b.clicked.connect(lambda: os._exit(0))
-    dataLayout.addWidget(b,7,0)
+    dataLayout.addWidget(b,8,0)
 
     #add data to mainLayout
     mainLayout.addWidget(data,0,0)
@@ -321,6 +334,19 @@ def window():
     graph = GraphWidget(w)
     mainLayout.addWidget(graph,0,1)
     graph.show()
+
+
+    #add progress bar
+    progress = QtGui.QLabel(w)
+    pixmap2= QPixmap('progressBar4.png')
+    progress.setPixmap(pixmap2)
+    progress.setStyleSheet("float:center;")
+    mainLayout.addWidget(progress,1,0,1,2)
+
+    #webview progress checklist
+    #webProgress = QtGui.QWebEngineView(w)
+    #webProgress.load(QUrl('progress-bar-master/example/index.html'))
+    #mainLayout.addWidget(webProgress,2,0,1,2)
 
     #start showing window
     w.setGeometry(app.desktop().availableGeometry())
