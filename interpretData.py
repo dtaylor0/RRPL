@@ -2,10 +2,11 @@
 
 import sys
 import os
+from time import sleep
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWebEngineWidgets import QtWebEngineView
+from PyQt5 import QtWidgets, Qt
+from pyqtgraph.Qt import *
+from PyQt5.QtGui import *
 import serial
 import threading
 from playsound import playsound
@@ -156,6 +157,7 @@ class  GraphWidget(pg.GraphicsWindow):
         global x_vals
         global y_vals
         if not serialPortWorks:
+            sleep(0.1)
             line=f.readline()
             strData=line.split()
             if len(strData)<10:
@@ -221,6 +223,10 @@ def GetData():
 def window():
     app = QtGui.QApplication(sys.argv)
 
+    #fontDB = QFontDatabase()
+    #fontDB.addApplicationFont("digital-7/digital-7.ttf")
+    #app.setFont(QFont("digital-7.ttf"))
+
     #initialize main window, mainLayout
     w = QtGui.QWidget()
     mainLayout = QtWidgets.QGridLayout(w)
@@ -233,12 +239,22 @@ def window():
     dataLayout = QtWidgets.QGridLayout(data)
 
     #initialize style sheet for data
-    style="background-color: lightgrey; border: 4px inset grey; max-height: 50px; font-size:25px;"
+    #digitalFont=QtGui.QFontDatabase.addApplicationFont("digital-7/digital-7.ttf")
+    style='''
+color: #80fc75;
+background-color: black;
+border: 4px inset grey;
+max-height: 50px;
+font-size:25px;'''
+
+    #style sheet for check labels
+    checkStyle='''font-size:20px'''
 
     #add logo
     logo = QtGui.QLabel(w)
     pixmap= QPixmap('logo.png')
     logo.setPixmap(pixmap)
+    logo.setFixedHeight(pixmap.height())
     dataLayout.addWidget(logo,0,0)
 
 
@@ -246,31 +262,32 @@ def window():
     currAlt = QtGui.QLabel(w)
     currAlt.setText("waiting for data...")
     currAlt.setStyleSheet(style)
+    #currAlt.setFont("digital-7")
     dataLayout.addWidget(currAlt,1,0)
 
     #add hasLaunched monitor
-    currHasLaunched = QtGui.QLabel(w)
-    currHasLaunched.setText("waiting for data...")
-    currHasLaunched.setStyleSheet(style)
-    dataLayout.addWidget(currHasLaunched,2,0)
+    #currHasLaunched = QtGui.QLabel(w)
+    #currHasLaunched.setText("waiting for data...")
+    #currHasLaunched.setStyleSheet(style)
+    #dataLayout.addWidget(currHasLaunched,2,0)
 
     #add mbo monitor
-    currMBO = QtGui.QLabel(w)
-    currMBO.setText("waiting for data...")
-    currMBO.setStyleSheet(style)
-    dataLayout.addWidget(currMBO,3,0)
+    #currMBO = QtGui.QLabel(w)
+    #currMBO.setText("waiting for data...")
+    #currMBO.setStyleSheet(style)
+    #dataLayout.addWidget(currMBO,3,0)
 
     #add apogee monitor
-    apogee = QtGui.QLabel(w)
-    apogee.setText("waiting for data...")
-    apogee.setStyleSheet(style)
-    dataLayout.addWidget(apogee,4,0)
+    #apogee = QtGui.QLabel(w)
+    #apogee.setText("waiting for data...")
+    #apogee.setStyleSheet(style)
+    #dataLayout.addWidget(apogee,4,0)
 
     #add hasLanded monitor
-    currHasLanded = QtGui.QLabel(w)
-    currHasLanded.setText("waiting for data...")
-    currHasLanded.setStyleSheet(style)
-    dataLayout.addWidget(currHasLanded,5,0)
+    #currHasLanded = QtGui.QLabel(w)
+    #currHasLanded.setText("waiting for data...")
+    #currHasLanded.setStyleSheet(style)
+    #dataLayout.addWidget(currHasLanded,5,0)
     
     #add GPS_LA monitor
     currGPS_LA = QtGui.QLabel(w)
@@ -285,39 +302,6 @@ def window():
     dataLayout.addWidget(currGPS_LO,7,0)
     
 
-    def update():
-        try:
-            currAlt.setText("Altitude: "+str(recentData[-1][alt]))
-        except:
-            pass
-        try:
-            currGPS_LA.setText("GPS LA: "+str(recentData[-1][GPS_LA]))
-        except:
-            pass
-        try:
-            currGPS_LO.setText("GPS LO: "+str(recentData[-1][GPS_LO]))
-        except:
-            pass
-        try:
-            currHasLaunched.setText("Has Launched: "+str(hasLaunched))
-        except:
-            pass
-        try:
-            currMBO.setText("Motor Burnout: "+str(mbo))
-        except:
-            pass
-        try:
-            apogee.setText("Apogee Reached: "+str(apogeeReached))
-        except:
-            pass
-        try:
-            currHasLanded.setText("Has Landed: "+str(hasLanded))
-        except:
-            pass
-
-    timer = QtCore.QTimer()
-    timer.timeout.connect(update)
-    timer.start(100)
 
 
     #create end program button, add to dataLayout
@@ -336,21 +320,123 @@ def window():
     graph.show()
 
 
-    #add progress bar
-    progress = QtGui.QLabel(w)
-    pixmap2= QPixmap('progressBar4.png')
-    progress.setPixmap(pixmap2)
-    progress.setStyleSheet("float:center;")
-    mainLayout.addWidget(progress,1,0,1,2)
+    checkboxes = QtGui.QWidget()
+    checkboxLayout=QtWidgets.QGridLayout(checkboxes)
 
-    #webview progress checklist
-    #webProgress = QtGui.QWebEngineView(w)
-    #webProgress.load(QUrl('progress-bar-master/example/index.html'))
-    #mainLayout.addWidget(webProgress,2,0,1,2)
+
+    #add launch checkbox label
+    LaunchLabel = QtGui.QLabel(w)
+    LaunchLabel.setText("Launch")
+    LaunchLabel.setStyleSheet(checkStyle)
+    LaunchLabel.setAlignment(QtCore.Qt.AlignCenter)
+    checkboxLayout.addWidget(LaunchLabel,0,0)
+    #add launch checkbox
+    check1 = QtGui.QLabel(w)
+    pixmap = QPixmap('unchecked.png')
+    check1.setPixmap(pixmap)
+    check1.setAlignment(QtCore.Qt.AlignCenter)
+    checkboxLayout.addWidget(check1,1,0,alignment=QtCore.Qt.AlignCenter)
+    
+    #add mbo checkbox label
+    MBOLabel = QtGui.QLabel(w)
+    MBOLabel.setText("Motor Burnout")
+    MBOLabel.setStyleSheet(checkStyle)
+    MBOLabel.setAlignment(QtCore.Qt.AlignCenter)
+    checkboxLayout.addWidget(MBOLabel,0,1,alignment=QtCore.Qt.AlignCenter)
+    #add mbo checkbox
+    check2 = QtGui.QLabel(w)
+    pixmap = QPixmap('unchecked.png')
+    check2.setPixmap(pixmap)
+    check2.setAlignment(QtCore.Qt.AlignCenter)
+    checkboxLayout.addWidget(check2,1,1,alignment=QtCore.Qt.AlignCenter)
+    
+    #add apogee checkbox label
+    ApogeeLabel = QtGui.QLabel(w)
+    ApogeeLabel.setText("Apogee")
+    ApogeeLabel.setStyleSheet(checkStyle)
+    ApogeeLabel.setAlignment(QtCore.Qt.AlignCenter)
+    checkboxLayout.addWidget(ApogeeLabel,0,2,alignment=QtCore.Qt.AlignCenter)
+    #add apogee checkbox
+    check3 = QtGui.QLabel(w)
+    pixmap = QPixmap('unchecked.png')
+    check3.setPixmap(pixmap)
+    check3.setAlignment(QtCore.Qt.AlignCenter)
+    checkboxLayout.addWidget(check3,1,2,alignment=QtCore.Qt.AlignCenter)
+    
+    #add has landed checkbox label
+    HasLandedLabel = QtGui.QLabel(w)
+    HasLandedLabel.setText("Has Landed")
+    HasLandedLabel.setStyleSheet(checkStyle)
+    HasLandedLabel.setAlignment(QtCore.Qt.AlignCenter)
+    checkboxLayout.addWidget(HasLandedLabel,0,3,alignment=QtCore.Qt.AlignCenter)
+    #add landed checkbox
+    check4 = QtGui.QLabel(w)
+    pixmap = QPixmap('unchecked.png')
+    check4.setPixmap(pixmap)
+    check4.setAlignment(QtCore.Qt.AlignCenter)
+    checkboxLayout.addWidget(check4,1,3,alignment=QtCore.Qt.AlignCenter)
+
+    mainLayout.addWidget(checkboxes,1,0,2,2)
+
+
+    def update():
+        try:
+            currAlt.setText("Altitude: "+str(recentData[-1][alt]))
+        except:
+            pass
+        try:
+            currGPS_LA.setText("GPS LA: "+str(recentData[-1][GPS_LA]))
+        except:
+            pass
+        try:
+            currGPS_LO.setText("GPS LO: "+str(recentData[-1][GPS_LO]))
+        except:
+            pass
+        try:
+            #currHasLaunched.setText("Has Launched: "+str(hasLaunched))
+            if hasLaunched:
+                check1 = QtGui.QLabel(w)
+                pixmap = QPixmap('checked.png')
+                check1.setPixmap(pixmap)
+                checkboxLayout.addWidget(check1,1,0,alignment=QtCore.Qt.AlignCenter)
+
+        except:
+            pass
+        try:
+            #currMBO.setText("Motor Burnout: "+str(mbo))
+            if mbo:
+                check2 = QtGui.QLabel(w)
+                pixmap = QPixmap('checked.png')
+                check2.setPixmap(pixmap)
+                checkboxLayout.addWidget(check2,1,1,alignment=QtCore.Qt.AlignCenter)
+        except:
+            pass
+        try:
+            #apogee.setText("Apogee Reached: "+str(apogeeReached))
+            if apogeeReached:
+                check3 = QtGui.QLabel(w)
+                pixmap = QPixmap('checked.png')
+                check3.setPixmap(pixmap)
+                checkboxLayout.addWidget(check3,1,2,alignment=QtCore.Qt.AlignCenter)
+        except:
+            pass
+        try:
+            #currHasLanded.setText("Has Landed: "+str(hasLanded))
+            if hasLanded:
+                check4 = QtGui.QLabel(w)
+                pixmap = QPixmap('checked.png')
+                check4.setPixmap(pixmap)
+                checkboxLayout.addWidget(check4,1,3,alignment=QtCore.Qt.AlignCenter)
+        except:
+            pass
+
+    timer = QtCore.QTimer()
+    timer.timeout.connect(update)
+    timer.start(100)
 
     #start showing window
     w.setGeometry(app.desktop().availableGeometry())
-    w.setWindowTitle("RRPL")
+    w.setWindowTitle("RRPL Ground Control")
     w.show()
     sys.exit(app.exec_())
 
