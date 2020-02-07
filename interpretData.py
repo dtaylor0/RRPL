@@ -11,6 +11,7 @@ import serial
 import threading
 from playsound import playsound
 
+'''
 alt=0
 barom=1
 #GPS
@@ -30,6 +31,26 @@ My=11
 Mz=12
 #time
 t=13
+'''
+
+alt=0
+#gyroscope
+Gx=1
+Gy=2
+Gz=3
+#accelerometer
+Ax=4
+Ay=5
+Az=6
+#magnemometer
+#Mx=8
+#My=9
+#Mz=10
+#time
+t=7
+#GPS
+GPS_LA=8
+GPS_LO=9
 
 x_vals=[]
 y_vals=[]
@@ -154,10 +175,10 @@ class  GraphWidget(pg.GraphicsWindow):
         timer.start(1)
 
     def update(self,f):
+        sleep(0.1)
         global x_vals
         global y_vals
         if not serialPortWorks:
-            sleep(0.1)
             line=f.readline()
             strData=line.split()
             if len(strData)<10:
@@ -201,13 +222,14 @@ def GetData():
         while True:
             while (ser.in_waiting < 1):
                 pass
-            line = ser.readline().decode('utf-8')[:-1]
+            try:
+                line = ser.readline().decode('utf-8')[:-1]
+            except:
+                line = ser.readline().decode('US-ASCII')[:-1]
             strData = line.split()
-            if (len(strData) < 10):
+            print(line)
+            if (len(strData) < 5):
                 continue
-            #gpsFile=open('gpsData.txt','a+')
-            #gpsFile.write(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
-            #print(strData[GPS_LA]+" "+strData[GPS_LO]+"\n")
             try:
                 data=[float(i) for i in strData]
             except:
@@ -215,17 +237,10 @@ def GetData():
             x_vals.append(data[t])
             y_vals.append(data[alt])
             AddDataLine(data)
-            #gpsFile.close()
-
-
 
 
 def window():
     app = QtGui.QApplication(sys.argv)
-
-    #fontDB = QFontDatabase()
-    #fontDB.addApplicationFont("digital-7/digital-7.ttf")
-    #app.setFont(QFont("digital-7.ttf"))
 
     #initialize main window, mainLayout
     w = QtGui.QWidget()
@@ -239,7 +254,6 @@ def window():
     dataLayout = QtWidgets.QGridLayout(data)
 
     #initialize style sheet for data
-    #digitalFont=QtGui.QFontDatabase.addApplicationFont("digital-7/digital-7.ttf")
     style='''
 color: #80fc75;
 background-color: black;
@@ -265,51 +279,25 @@ font-size:25px;'''
     #currAlt.setFont("digital-7")
     dataLayout.addWidget(currAlt,1,0)
 
-    #add hasLaunched monitor
-    #currHasLaunched = QtGui.QLabel(w)
-    #currHasLaunched.setText("waiting for data...")
-    #currHasLaunched.setStyleSheet(style)
-    #dataLayout.addWidget(currHasLaunched,2,0)
-
-    #add mbo monitor
-    #currMBO = QtGui.QLabel(w)
-    #currMBO.setText("waiting for data...")
-    #currMBO.setStyleSheet(style)
-    #dataLayout.addWidget(currMBO,3,0)
-
-    #add apogee monitor
-    #apogee = QtGui.QLabel(w)
-    #apogee.setText("waiting for data...")
-    #apogee.setStyleSheet(style)
-    #dataLayout.addWidget(apogee,4,0)
-
-    #add hasLanded monitor
-    #currHasLanded = QtGui.QLabel(w)
-    #currHasLanded.setText("waiting for data...")
-    #currHasLanded.setStyleSheet(style)
-    #dataLayout.addWidget(currHasLanded,5,0)
-    
     #add GPS_LA monitor
     currGPS_LA = QtGui.QLabel(w)
     currGPS_LA.setText("waiting for data...")
     currGPS_LA.setStyleSheet(style)
-    dataLayout.addWidget(currGPS_LA,6,0)
+    dataLayout.addWidget(currGPS_LA,2,0)
 
     #add GPS_LO monitor
     currGPS_LO = QtGui.QLabel(w)
     currGPS_LO.setText("waiting for data...")
     currGPS_LO.setStyleSheet(style)
-    dataLayout.addWidget(currGPS_LO,7,0)
+    dataLayout.addWidget(currGPS_LO,3,0)
     
-
-
 
     #create end program button, add to dataLayout
     b = QtGui.QPushButton(w)
     b.setText("End Program")
     b.setStyleSheet("background-color:white;")
     b.clicked.connect(lambda: os._exit(0))
-    dataLayout.addWidget(b,8,0)
+    dataLayout.addWidget(b,5,0)
 
     #add data to mainLayout
     mainLayout.addWidget(data,0,0)
@@ -381,7 +369,7 @@ font-size:25px;'''
 
     def update():
         try:
-            currAlt.setText("Altitude: "+str(recentData[-1][alt]))
+            currAlt.setText("Altitude: "+str(recentData[-1][alt])+" m")
         except:
             pass
         try:
@@ -418,6 +406,12 @@ font-size:25px;'''
                 pixmap = QPixmap('checked.png')
                 check3.setPixmap(pixmap)
                 checkboxLayout.addWidget(check3,1,2,alignment=QtCore.Qt.AlignCenter)
+
+                ApogeeValueLabel = QtGui.QLabel(w)
+                ApogeeValueLabel.setText("Apogee: "+str(apogeeHeight)+" m")
+                ApogeeValueLabel.setStyleSheet(style)
+                dataLayout.addWidget(ApogeeValueLabel,4,0)
+
         except:
             pass
         try:
