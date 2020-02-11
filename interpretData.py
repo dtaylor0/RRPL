@@ -222,10 +222,7 @@ def GetData():
         while True:
             while (ser.in_waiting < 1):
                 pass
-            try:
-                line = ser.readline().decode('utf-8')[:-1]
-            except:
-                line = ser.readline().decode('US-ASCII')[:-1]
+            line = ser.readline().decode('utf-8')[:-1]
             strData = line.split()
             if (len(strData) < 5):
                 continue
@@ -289,14 +286,27 @@ font-size:25px;'''
     currGPS_LO.setText("waiting for data...")
     currGPS_LO.setStyleSheet(style)
     dataLayout.addWidget(currGPS_LO,3,0)
-    
+
+
+    def TurnOnCamera():
+        try:
+            ser.write("1".encode())
+        except:
+            print("failure")
+
+    #create camera control button, add to dataLayout
+    cameraButton = QtGui.QPushButton(w)
+    cameraButton.setText("Turn on Camera")
+    cameraButton.setStyleSheet("background-color:white;")
+    cameraButton.clicked.connect(lambda: TurnOnCamera())
+    dataLayout.addWidget(cameraButton,5,0)
 
     #create end program button, add to dataLayout
-    b = QtGui.QPushButton(w)
-    b.setText("End Program")
-    b.setStyleSheet("background-color:white;")
-    b.clicked.connect(lambda: os._exit(0))
-    dataLayout.addWidget(b,5,0)
+    endButton = QtGui.QPushButton(w)
+    endButton.setText("End Program")
+    endButton.setStyleSheet("background-color:white;")
+    endButton.clicked.connect(lambda: os._exit(0))
+    dataLayout.addWidget(endButton,6,0)
 
     #add data to mainLayout
     mainLayout.addWidget(data,0,0)
