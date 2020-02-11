@@ -227,7 +227,6 @@ def GetData():
             except:
                 line = ser.readline().decode('US-ASCII')[:-1]
             strData = line.split()
-            print(line)
             if (len(strData) < 5):
                 continue
             try:
