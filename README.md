@@ -1,1 +1,1 @@
-![](RRPL_program.gif)
+![](GroundControl.gif)

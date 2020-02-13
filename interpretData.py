@@ -49,8 +49,8 @@ Az=6
 #time
 t=7
 #GPS
-GPS_LA=8
-GPS_LO=9
+GPS_LA=2
+GPS_LO=3
 
 x_vals=[]
 y_vals=[]
