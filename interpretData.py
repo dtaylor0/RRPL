@@ -175,7 +175,6 @@ class  GraphWidget(pg.GraphicsWindow):
         timer.start(1)
 
     def update(self,f):
-        sleep(0.1)
         global x_vals
         global y_vals
         if not serialPortWorks:
