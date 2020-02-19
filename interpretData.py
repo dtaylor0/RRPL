@@ -49,8 +49,8 @@ Az=6
 #time
 t=7
 #GPS
-GPS_LA=2
-GPS_LO=3
+GPS_LA=8
+GPS_LO=9
 
 x_vals=[]
 y_vals=[]
@@ -86,6 +86,8 @@ recentData=[]
 
 timeLaunched=0
 timeLanded=0
+
+camIsOn=False
 
 serialPortWorks=True
 ser=None
@@ -235,6 +237,9 @@ def GetData():
 
 
 def window():
+
+    global camIsOn
+
     app = QtGui.QApplication(sys.argv)
 
     #initialize main window, mainLayout
@@ -258,6 +263,12 @@ font-size:25px;'''
 
     #style sheet for check labels
     checkStyle='''font-size:20px'''
+    
+
+    cam_style='''
+color: red;
+max-height: 50px;
+font-size:25px;'''
 
     #add logo
     logo = QtGui.QLabel(w)
@@ -288,24 +299,26 @@ font-size:25px;'''
 
 
     def TurnOnCamera():
+        print("got here")
+        camIsOn=True
         try:
             ser.write("1".encode())
         except:
-            print("failure")
+            pass#print("failure")
 
     #create camera control button, add to dataLayout
     cameraButton = QtGui.QPushButton(w)
     cameraButton.setText("Turn on Camera")
     cameraButton.setStyleSheet("background-color:white;")
     cameraButton.clicked.connect(lambda: TurnOnCamera())
-    dataLayout.addWidget(cameraButton,5,0)
+    dataLayout.addWidget(cameraButton,6,0)
 
     #create end program button, add to dataLayout
     endButton = QtGui.QPushButton(w)
     endButton.setText("End Program")
     endButton.setStyleSheet("background-color:white;")
     endButton.clicked.connect(lambda: os._exit(0))
-    dataLayout.addWidget(endButton,6,0)
+    dataLayout.addWidget(endButton,7,0)
 
     #add data to mainLayout
     mainLayout.addWidget(data,0,0)
@@ -431,6 +444,33 @@ font-size:25px;'''
                 checkboxLayout.addWidget(check4,1,3,alignment=QtCore.Qt.AlignCenter)
         except:
             pass
+        try:
+            #camera stuff
+            #if camIsOn:
+            print("cam is on")
+            camInfo = QtGui.QWidget()
+            camInfoLayout=QtWidgets.QHBoxLayout(camInfo)
+            
+            Light = QtGui.QLabel(w)
+            pixmap = QPixmap('red.png')
+            Light.setPixmap(pixmap)
+            Light.setStyleSheet(cam_style)
+            Light.setAlignment(QtCore.Qt.AlignCenter)
+            camInfoLayout.addWidget(Light)
+
+            CamText = QtGui.QLabel(w)
+            CamText.setText("Recording...")
+            CamText.setStyleSheet(cam_style)
+            CamText.setAlignment(QtCore.Qt.AlignCenter)
+            camInfoLayout.addWidget(CamText)
+
+            camInfoLayout.setSpacing(10)
+            camInfoLayout.addStretch()
+
+            dataLayout.addWidget(camInfo,5,0)
+        except:
+            pass
+
 
     timer = QtCore.QTimer()
     timer.timeout.connect(update)

@@ -114,6 +114,7 @@ font-size:25px;'''
     ServoDial.setMinimum(0)
     ServoDial.setMaximum(360)
     ServoDial.setValue(40)
+    ServoDial.setNotchesVisible(True)
     ServoDial.valueChanged.connect(sliderMoved)
     mainLayout.addWidget(ServoDial,0,1)
 
@@ -138,7 +139,6 @@ font-size:25px;'''
     timer.start(100)
 
     #start showing window
-    #w.setGeometry(app.desktop().availableGeometry())
     w.setWindowTitle("RRPL Servo Control")
     w.show()
     sys.exit(app.exec_())
@@ -165,7 +165,7 @@ def FindData():
 
     if ser==None:
         print("Error: Unable to find serial input in any ports. Exiting...")
-        sys.exit()
+        #sys.exit()
 
 if __name__ == '__main__':
     f=FindData()
