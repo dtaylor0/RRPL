@@ -44,6 +44,86 @@ alpha=0
 cmd=0
 
 
+#launch vars
+TOL_Launch=10
+hasLaunched=False
+
+#motor burnout vars
+mbo=False
+
+#apogee vars
+apogeeConfidence=0
+minCertaintyApogee=2
+apogeeReached=False
+apogeeHeight=0
+
+#landed vars
+hasLanded=False
+TOL_Landed=0.5
+TOL_Height=100
+heightAtLaunch=0
+
+timeLaunched=0
+timeLanded=0
+
+recentData=[]
+
+def AddDataLine(dataLine):
+    if len(recentData)>=10:
+        recentData.pop(0)
+    recentData.append(dataLine)
+
+def CheckLaunch():
+    global hasLaunched
+    global timeLaunched
+    global heightAtLaunch
+    if len(recentData)<2:
+        return
+    if ((recentData[-1][alt])-(recentData[-2][alt])) > TOL_Launch:
+        hasLaunched=True
+        timeLaunched=recentData[-2][t]
+        heightAtLaunch=recentData[-2][alt]
+
+def CheckMBO():
+    global hasLaunched
+    global mbo
+    if not hasLaunched:
+        return
+    #if vertical acceleration is < 0
+    if recentData[-1][Az]<0:
+        mbo=True
+
+def CheckApogee():
+    global mbo
+    global apogeeConfidence
+    global apogeeReached
+    global apogeeHeight
+    if not mbo:
+        return
+    if recentData[-1][alt]<recentData[-2][alt]:
+        apogeeConfidence+=1
+    if apogeeConfidence>minCertaintyApogee:
+        apogeeReached=True
+        for dataLine in recentData:
+            if dataLine[alt]>apogeeHeight:
+                apogeeHeight=dataLine[alt]
+
+
+
+def CheckLanded():
+    global hasLanded
+    global timeLanded
+    global heightAtLaunch
+    if not apogeeReached:
+        return
+    if recentData[-1][alt]-heightAtLaunch > TOL_Height:
+        return
+    if abs(recentData[9][alt]-recentData[5][alt])<TOL_Landed:
+        hasLanded=True
+        timeLanded=recentData[0][t]
+
+
+
 #camera control
 camIsOn = False
 def CheckCamera():
@@ -113,6 +193,7 @@ def GetData():
         if (len(strData) <10):
             return
         data = [float(i) for i in strData]
+	AddDataLine(data)
     if serialPortWorks==False:
         line=f1.readline()
         if len(line)<1:
@@ -124,10 +205,21 @@ def GetData():
             data = [float(i) for i in strData]
         except:
             return
+	AddDataLine(data)
+    if not hasLaunched:
+	CheckLaunch()
+    elif not mbo:
+	CheckMBO()
+    elif not apogeeReached:
+	CheckApogee()
+    if apogeeReached and not hasLanded:
+	CheckLanded()
     f = open('ard_log.txt', 'a+')
     f.write(line + '/n')
     f.close()
     #print(strData)
+
+
 def QCF():
     global qa
     global qb
