@@ -268,7 +268,8 @@ font-size:25px;'''
     cam_style='''
 color: red;
 max-height: 50px;
-font-size:25px;'''
+font-size:25px;
+font-weight: 900;'''
 
     #add logo
     logo = QtGui.QLabel(w)
@@ -297,14 +298,26 @@ font-size:25px;'''
     currGPS_LO.setStyleSheet(style)
     dataLayout.addWidget(currGPS_LO,3,0)
 
+    # add camera recording indicator
+    CamText = QtGui.QLabel(w)
+    CamText.setText("Camera is Recording...")
+    CamText.setAlignment(QtCore.Qt.AlignCenter)
+    CamText.setStyleSheet(cam_style)
 
     def TurnOnCamera():
-        print("got here")
-        camIsOn=True
-        try:
-            ser.write("1".encode())
-        except:
-            pass#print("failure")
+        global camIsOn
+        if not camIsOn:
+            camIsOn=True
+            try:
+                ser.write("1".encode())
+            except:
+                pass#print("failure")
+        elif camIsOn:
+            camIsOn=False
+            try:
+                ser.write("0".encode())
+            except:
+                pass
 
     #create camera control button, add to dataLayout
     cameraButton = QtGui.QPushButton(w)
@@ -446,28 +459,14 @@ font-size:25px;'''
             pass
         try:
             #camera stuff
-            #if camIsOn:
-            print("cam is on")
-            camInfo = QtGui.QWidget()
-            camInfoLayout=QtWidgets.QHBoxLayout(camInfo)
-            
-            Light = QtGui.QLabel(w)
-            pixmap = QPixmap('red.png')
-            Light.setPixmap(pixmap)
-            Light.setStyleSheet(cam_style)
-            Light.setAlignment(QtCore.Qt.AlignCenter)
-            camInfoLayout.addWidget(Light)
-
-            CamText = QtGui.QLabel(w)
-            CamText.setText("Recording...")
-            CamText.setStyleSheet(cam_style)
-            CamText.setAlignment(QtCore.Qt.AlignCenter)
-            camInfoLayout.addWidget(CamText)
-
-            camInfoLayout.setSpacing(10)
-            camInfoLayout.addStretch()
-
-            dataLayout.addWidget(camInfo,5,0)
+            if camIsOn:
+                cameraButton.setText("Turn off Camera")
+                CamText.show()
+                dataLayout.addWidget(CamText,5,0)
+            elif not camIsOn:
+                cameraButton.setText("Turn on Camera")
+                dataLayout.removeWidget(CamText)
+                CamText.hide()
         except:
             pass
 
@@ -493,8 +492,7 @@ def FindData():
         print ('Error: No user given, cannot check serial ports. '+
                 'Function call should be \"python interpretData.py {user} {file (optional)}\"')
         sys.exit()
-
-
+    
     if user in users.keys() and len(sys.argv)<3:
         for port in users.get(user):
             try:

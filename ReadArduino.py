@@ -6,33 +6,32 @@ import time
 import subprocess
 import datetime as dt
 serialPortWorks = True
-users={'Pi':['/dev/ttyUSB0'],'aaron':['COM6','COM3','COM7','COM4']}
+users={'Pi':['/dev/ttyUSB0','/dev/ttyUSB1'],'aaron':['COM6','COM3','COM7','COM4']}
 ser=None
 #f=None
 f1=None
 data=[]
 #Array Denotation
 alt=0
-barom=1
 #GPS
-GPS_LA=2
-GPS_LO=3
+GPS_LA=9
+GPS_LO=10
 #gyroscope
-Gx=4
-Gy=5
-Gz=6
+Gx=1
+Gy=2
+Gz=3
 #accelerometer
-Ax=7
-Ay=8
-Az=9
+Ax=4
+Ay=5
+Az=6
 #magnemometer
-Mx=10
-My=11
-Mz=12
+#Mx=10
+#My=11
+#Mz=12
 #time
-t=13
+t=7
 #camera boolean, have to change index values later
-cam=14
+cam=8
 
 #launch vars
 TOL_Launch=10
@@ -119,10 +118,6 @@ def CheckLanded():
 
 
 #camera control
-try:
-    p = subprocess.Popen(['python','/rasp_record.py'])
-except:
-    print('error with camera subprocess')
 camIsOn = False
 def CheckCamera():
     if len(data)<=cam:
@@ -131,11 +126,12 @@ def CheckCamera():
     if data[cam]==1 and not camIsOn:
         try:
             #run camera program
+            p = subprocess.Popen(['sudo','python','/rasp_record.py'])
             camIsOn = True
         except:
             print("oof")
             return
-    elif data[cam]==0 and camIsOn:
+    elif (data[cam]==0 or hasLanded) and camIsOn:
         try:
             #end camera program
             p.terminate()
@@ -143,6 +139,7 @@ def CheckCamera():
         except:
             print("oof 2")
             return
+
 
 
 def FindData():
@@ -211,10 +208,10 @@ def GetData():
         CheckLanded()
     if mbo and serialPortWorks:
         ser.write("a".encode())
-    if hasLanded:
-        p.terminate()
     f = open(filename, 'a+')
-    f.write(line)
+    #f.write(line)
+    print(line)
+    f.write(' '.join(strData)+'\n')
     f.close()
     #print(strData)
 
