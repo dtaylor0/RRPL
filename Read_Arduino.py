@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import serial
 from time import sleep
 import sys
@@ -127,6 +128,8 @@ def CheckLanded():
 #camera control
 camIsOn = False
 def CheckCamera():
+    if len(data)<=cam:
+        return
     global camIsOn
     if data[cam]==1 and not camIsOn:
         try:
@@ -135,7 +138,7 @@ def CheckCamera():
             camIsOn = True
         except:
             print("oof")
-            continue
+            return
     elif data[cam]==0 and camIsOn:
         try:
             #end camera program
@@ -143,7 +146,7 @@ def CheckCamera():
             camIsOn = False
         except:
             print("oof 2")
-            continue
+            return
 
 
 #File
@@ -193,8 +196,9 @@ def GetData():
         if (len(strData) <10):
             return
         data = [float(i) for i in strData]
-	AddDataLine(data)
+        AddDataLine(data)
     if serialPortWorks==False:
+        sleep(0.1)
         line=f1.readline()
         if len(line)<1:
             sys.exit()
@@ -205,15 +209,19 @@ def GetData():
             data = [float(i) for i in strData]
         except:
             return
-	AddDataLine(data)
+    AddDataLine(data)
     if not hasLaunched:
-	CheckLaunch()
+        CheckLaunch()
     elif not mbo:
-	CheckMBO()
+        CheckMBO()
     elif not apogeeReached:
-	CheckApogee()
+        CheckApogee()
     if apogeeReached and not hasLanded:
-	CheckLanded()
+        CheckLanded()
+    print(hasLaunched)
+    print(mbo)
+    print(apogeeReached)
+    print(hasLanded)
     f = open('ard_log.txt', 'a+')
     f.write(line + '/n')
     f.close()
